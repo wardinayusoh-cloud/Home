@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ระบบชำระค่าบ้าน</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root{--primary-dark:#0f2b46;--primary:#1e40af;--primary-light:#60a5fa;--bg-gradient:linear-gradient(135deg,#e0f2fe 0%,#f8fafc 100%);--white:#fff;--text-main:#1e293b;--text-muted:#64748b;--danger:#dc2626;--ok:#16a34a}
+    *{box-sizing:border-box;margin:0;padding:0;font-family:'Sarabun',sans-serif}
+    body{background:var(--bg-gradient);color:var(--text-main);min-height:100vh;display:flex;justify-content:center;align-items:flex-start;padding:20px}
+    .container{background:var(--white);width:100%;max-width:550px;border-radius:24px;box-shadow:0 10px 30px rgba(15,43,70,.08);overflow:hidden;border:1px solid rgba(96,165,250,.2)}
+    .header{background:linear-gradient(135deg,var(--primary-dark),var(--primary));color:#fff;padding:30px 20px;text-align:center}
+    .header h2{font-size:24px;font-weight:700}
+    .header p{font-size:14px;color:var(--primary-light);margin-top:5px}
+    .body{padding:30px}
+    .form-group{margin-bottom:20px}
+    label{display:block;font-size:14px;font-weight:600;color:var(--primary-dark);margin-bottom:8px}
+    input[type=text],input[type=number],input[type=password],select,textarea{width:100%;padding:12px 16px;border:1.5px solid #cbd5e1;border-radius:12px;font-size:15px;color:var(--text-main);background:#f8fafc;transition:.3s;outline:none}
+    input:focus,select:focus,textarea:focus{border-color:var(--primary);background:#fff;box-shadow:0 0 0 4px rgba(30,64,175,.15)}
+    textarea{resize:vertical}
+    .radio-group{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .radio-box{border:1.5px solid #cbd5e1;border-radius:12px;padding:12px;text-align:center;cursor:pointer;font-weight:600;transition:.2s;background:#f8fafc}
+    .radio-group input[type=radio]{display:none}
+    .radio-group input[type=radio]:checked+.radio-box{background:#eff6ff;border-color:var(--primary);color:var(--primary)}
+    .qr-box{display:none;background:#f0f7ff;border:1.5px dashed var(--primary-light);border-radius:12px;padding:16px;margin-top:12px;text-align:center;animation:fadeIn .3s ease}
+    .qr-box img{width:100%;max-width:260px;border-radius:12px;background:#fff;border:1px solid #e2e8f0}
+    .qr-box .acc{margin-top:10px;font-size:14px}
+    .qr-box .acc small{color:var(--text-muted)}
+    .btn-small{background:var(--primary);color:#fff;border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-size:13px;margin-top:10px}
+    .slip-box{display:none;margin-top:15px;animation:fadeIn .3s ease}
+    input[type=file]{width:100%;padding:10px;border:1.5px dashed #cbd5e1;border-radius:12px;background:#f8fafc;cursor:pointer}
+    .btn-primary{width:100%;background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:#fff;border:none;padding:14px;border-radius:12px;font-size:16px;font-weight:600;cursor:pointer;margin-top:10px;box-shadow:0 4px 12px rgba(30,64,175,.2)}
+    .btn-primary:disabled{background:#cbd5e1;cursor:not-allowed;box-shadow:none}
+    .btn-link{background:none;border:none;color:var(--primary);cursor:pointer;font-size:14px;margin-top:14px;text-decoration:underline}
+    .hidden{display:none!important}
+    .status{border-radius:16px;padding:18px;margin-bottom:20px}
+    .status.bad{background:#fef2f2;border:1.5px solid #fecaca}
+    .status.good{background:#f0fdf4;border:1.5px solid #bbf7d0}
+    .status h3{font-size:17px;margin-bottom:6px}
+    .status.bad h3{color:var(--danger)} .status.good h3{color:var(--ok)}
+    .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+    .chip{background:#fff;border:1px solid #fecaca;color:var(--danger);border-radius:999px;padding:4px 12px;font-size:13px;font-weight:600}
+    .notice{background:#fffbeb;border:1.5px solid #fde68a;border-radius:14px;padding:14px;margin-bottom:12px;font-size:14px}
+    .notice b{color:#b45309}
+    .history{margin-top:26px;border-top:1px solid #e2e8f0;padding-top:18px}
+    .history h4{font-size:15px;margin-bottom:10px;color:var(--primary-dark)}
+    .h-row{display:flex;justify-content:space-between;font-size:13px;padding:8px 0;border-bottom:1px solid #f1f5f9}
+    .tag{font-size:11px;padding:2px 8px;border-radius:999px;font-weight:600}
+    .tag.pending{background:#fef9c3;color:#a16207}.tag.confirmed{background:#dcfce7;color:#15803d}.tag.rejected{background:#fee2e2;color:#b91c1c}
+    .err{color:var(--danger);font-size:14px;margin-top:10px;text-align:center}
+    .hello{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+    .hello strong{font-size:17px}
+    .modal{display:none;position:fixed;inset:0;background:rgba(15,43,70,.6);backdrop-filter:blur(4px);justify-content:center;align-items:center;padding:20px;z-index:1000}
+    .modal-content{background:#fff;padding:30px;border-radius:20px;text-align:center;max-width:400px;width:100%;animation:scaleUp .3s ease}
+    .success-icon{width:60px;height:60px;background:#dcfce7;color:#16a34a;border-radius:50%;display:flex;justify-content:center;align-items:center;font-size:30px;margin:0 auto 20px}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:none}}
+    @keyframes scaleUp{from{transform:scale(.9);opacity:0}to{transform:scale(1);opacity:1}}
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h2>ระบบชำระค่าบ้าน</h2>
+    <p>หอพักนักเรียน ม.4 - ม.6</p>
+  </div>
+
+  <!-- หน้าแรก: กรอกชื่อ -->
+  <div class="body" id="loginView">
+    <div class="form-group">
+      <label for="loginName">ชื่อ - นามสกุล</label>
+      <input type="text" id="loginName" placeholder="กรอกชื่อและนามสกุลให้ตรงกับที่ลงทะเบียน" autocomplete="off">
+    </div>
+    <div class="form-group">
+      <label for="loginPin">รหัส 4 หลัก</label>
+      <input type="password" id="loginPin" inputmode="numeric" maxlength="4" placeholder="รหัสที่ได้รับจากพี่ดูแล">
+    </div>
+    <button class="btn-primary" id="loginBtn" onclick="login()">เข้าสู่ระบบ / ตรวจสอบยอดค้าง</button>
+    <div class="err" id="loginErr"></div>
+  </div>
+
+  <!-- หน้าที่สอง: สถานะ + ฟอร์มชำระเงิน -->
+  <div class="body hidden" id="mainView">
+    <div class="hello">
+      <div><strong id="helloName"></strong><br><small id="helloGrade" style="color:var(--text-muted)"></small></div>
+      <button class="btn-link" style="margin:0" onclick="logout()">ออกจากระบบ</button>
+    </div>
+
+    <div id="noticeList"></div>
+    <div id="statusBox" class="status"></div>
+
+    <form id="payForm" onsubmit="submitPayment(event)">
+      <div class="form-group">
+        <label for="month">ชำระค่าบ้านประจำเดือน</label>
+        <select id="month" required onchange="fillAmount()"></select>
+      </div>
+
+      <div class="form-group">
+        <label for="receiver">ชำระเงินที่ใคร</label>
+        <select id="receiver" required><option value="" disabled selected>เลือกชื่อ</option></select>
+      </div>
+
+      <div class="form-group">
+        <label>รูปแบบการชำระเงิน</label>
+        <div class="radio-group">
+          <label><input type="radio" name="payMethod" value="เงินสด" checked onclick="toggleTransfer(false)"><div class="radio-box">เงินสด</div></label>
+          <label><input type="radio" name="payMethod" value="โอนเงิน" onclick="toggleTransfer(true)"><div class="radio-box">โอนเงิน</div></label>
+        </div>
+
+        <div id="qrBox" class="qr-box">
+          <!-- วางไฟล์ QR ของคุณชื่อ qr.png ไว้โฟลเดอร์เดียวกับไฟล์นี้ -->
+          <img id="qrImg" src="qr.png" alt="QR รับเงิน" onerror="this.outerHTML='<p style=&quot;color:#b91c1c;font-size:14px&quot;>ยังไม่มีไฟล์ qr.png</p>'">
+          <div class="acc">
+            <strong style="color:var(--primary)">ธนาคารไทยพาณิชย์ (SCB)</strong><br>
+            <small>ชื่อบัญชี: วัรดีนาร์ ยูโซะ</small>
+          </div>
+          <a class="btn-small" style="display:inline-block;text-decoration:none" href="qr.png" download="qr-payment.png">บันทึกรูป QR</a>
+        </div>
+
+        <div id="slipBox" class="slip-box">
+          <label for="slipFile">แนบสลิปการโอนเงิน</label>
+          <input type="file" id="slipFile" accept="image/*">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="amount">จำนวนเงินที่ชำระ (บาท)</label>
+        <input type="number" id="amount" min="1" required>
+      </div>
+
+      <div class="form-group">
+        <label for="note">เพิ่มเติม</label>
+        <textarea id="note" rows="2" placeholder="เพิ่มเติม (ถ้ามี) เช่น ค้างคืน"></textarea>
+      </div>
+
+      <button type="submit" class="btn-primary" id="submitBtn">บันทึกการชำระเงิน</button>
+    </form>
+
+    <div class="history">
+      <h4>ประวัติการชำระของฉัน</h4>
+      <div id="historyList"></div>
+    </div>
+  </div>
+</div>
+
+<div id="successModal" class="modal">
+  <div class="modal-content">
+    <div class="success-icon">✓</div>
+    <h3 style="color:var(--primary-dark);margin-bottom:10px">บันทึกข้อมูลสำเร็จ!</h3>
+    <p id="successMsg" style="font-size:14px;color:var(--text-muted);margin-bottom:20px"></p>
+    <button class="btn-primary" style="margin:0" onclick="closeModal()">ตกลง</button>
+  </div>
+</div>
+
+<script>
+  // ====== ตั้งค่า Supabase (Project Settings > API) ======
+  const SUPABASE_URL = 'https://YOUR-PROJECT.supabase.co';
+  const SUPABASE_ANON_KEY = 'YOUR-ANON-PUBLIC-KEY';
+  // =======================================================
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  let me = null, creds = null;
+
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const thMonth = k => new Date(k + '-01T00:00:00+07:00').toLocaleDateString('th-TH', {month:'long', year:'numeric'});
+  const curKey = () => new Date().toLocaleString('sv-SE', {timeZone:'Asia/Bangkok'}).slice(0, 7);
+  function monthsRange(a, b) {
+    const out = []; let [y, m] = a.split('-').map(Number); const [ey, em] = b.split('-').map(Number);
+    while (y < ey || (y === ey && m <= em)) { out.push(`${y}-${String(m).padStart(2,'0')}`); m++; if (m > 12) { m = 1; y++; } }
+    return out;
+  }
+  function calcOwed(me) {
+    const sums = {};
+    me.payments.filter(p => p.status !== 'rejected').forEach(p => sums[p.month_key] = (sums[p.month_key] || 0) + p.amount);
+    return monthsRange(me.start_month, curKey())
+      .map(m => ({month: m, remaining: me.fee - (sums[m] || 0)}))
+      .filter(x => x.remaining > 0);
+  }
+
+  async function login() {
+    const name = $('loginName').value.trim(), pin = $('loginPin').value.trim();
+    $('loginErr').textContent = '';
+    if (!name || !pin) { $('loginErr').textContent = 'กรุณากรอกชื่อและรหัส'; return; }
+    $('loginBtn').disabled = true; $('loginBtn').textContent = 'กำลังตรวจสอบ...';
+    const { data, error } = await sb.rpc('get_student_status', { p_name: name, p_pin: pin });
+    $('loginBtn').disabled = false; $('loginBtn').textContent = 'เข้าสู่ระบบ / ตรวจสอบยอดค้าง';
+    if (error) { $('loginErr').textContent = 'เชื่อมต่อระบบไม่ได้: ' + error.message; return; }
+    if (!data) { $('loginErr').textContent = 'ไม่พบชื่อนี้ หรือรหัสไม่ถูกต้อง'; return; }
+    creds = { name, pin };
+    me = data;
+    sessionStorage.setItem('creds', JSON.stringify(creds));
+    await loadReceivers();
+    render();
+  }
+
+  function logout() {
+    sessionStorage.removeItem('creds'); me = creds = null;
+    $('mainView').classList.add('hidden'); $('loginView').classList.remove('hidden');
+    $('loginPin').value = '';
+  }
+
+  async function refresh() {
+    const { data } = await sb.rpc('get_student_status', { p_name: creds.name, p_pin: creds.pin });
+    if (data) { me = data; render(false); }
+  }
+
+  async function loadReceivers() {
+    const { data } = await sb.from('receivers').select('name').eq('active', true).order('id');
+    const sel = $('receiver');
+    sel.innerHTML = '<option value="" disabled selected>เลือกชื่อ</option>' +
+      (data || []).map(r => `<option value="${esc(r.name)}">${esc(r.name)}</option>`).join('');
+  }
+
+  function render(showNotices = true) {
+    $('loginView').classList.add('hidden'); $('mainView').classList.remove('hidden');
+    $('helloName').textContent = me.full_name; $('helloGrade').textContent = me.grade;
+
+    // แจ้งเตือนจากแอดมิน
+    $('noticeList').innerHTML = me.notices.map(n =>
+      `<div class="notice"><b>📢 แจ้งเตือนจากผู้ดูแล</b><br>${esc(n.message)}</div>`).join('');
+    if (showNotices && me.notices.length) sb.rpc('mark_notices_read', { p_name: creds.name, p_pin: creds.pin });
+
+    // ยอดค้าง
+    const owed = calcOwed(me), box = $('statusBox'), total = owed.reduce((a, b) => a + b.remaining, 0);
+    if (owed.length) {
+      box.className = 'status bad';
+      box.innerHTML = `<h3>ค้างชำระ ${owed.length} เดือน (รวม ${total.toLocaleString()} บาท)</h3>
+        <div class="chips">${owed.map(o => `<span class="chip">${thMonth(o.month)}${o.remaining < me.fee ? ' (เหลือ ' + o.remaining + ')' : ''}</span>`).join('')}</div>`;
+    } else {
+      box.className = 'status good';
+      box.innerHTML = '<h3>✓ ชำระครบทุกเดือนแล้ว</h3><span style="font-size:14px">ขอบคุณครับ/ค่ะ</span>';
+    }
+
+    // dropdown เดือน: เดือนที่ค้าง + เดือนปัจจุบัน
+    const opts = owed.map(o => o.month);
+    if (!opts.includes(curKey())) opts.push(curKey());
+    $('month').innerHTML = opts.map(m => `<option value="${m}">${thMonth(m)}</option>`).join('');
+    fillAmount();
+
+    // ประวัติ
+    const label = { pending: 'รอตรวจสอบ', confirmed: 'ยืนยันแล้ว', rejected: 'ไม่ผ่าน' };
+    $('historyList').innerHTML = me.payments.length ? me.payments.map(p =>
+      `<div class="h-row"><span>${thMonth(p.month_key)} · ${p.amount.toLocaleString()} บาท · ${esc(p.method)}</span><span class="tag ${p.status}">${label[p.status]}</span></div>`).join('')
+      : '<p style="font-size:13px;color:var(--text-muted)">ยังไม่มีประวัติ</p>';
+  }
+
+  function fillAmount() {
+    const m = $('month').value, o = calcOwed(me).find(x => x.month === m);
+    $('amount').value = o ? o.remaining : me.fee;
+  }
+
+  function toggleTransfer(show) {
+    $('qrBox').style.display = show ? 'block' : 'none';
+    $('slipBox').style.display = show ? 'block' : 'none';
+    $('slipFile').required = show;
+  }
+
+  async function submitPayment(e) {
+    e.preventDefault();
+    const btn = $('submitBtn'); btn.disabled = true; btn.textContent = 'กำลังบันทึก...';
+    try {
+      const method = document.querySelector('input[name=payMethod]:checked').value;
+      let slipPath = '';
+      if (method === 'โอนเงิน') {
+        const f = $('slipFile').files[0];
+        if (!f) throw new Error('กรุณาแนบสลิป');
+        if (f.size > 5 * 1024 * 1024) throw new Error('ไฟล์สลิปใหญ่เกิน 5 MB');
+        const ext = (f.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '');
+        slipPath = `${new Date().toISOString().slice(0,7)}/${crypto.randomUUID()}.${ext}`;
+        const up = await sb.storage.from('slips').upload(slipPath, f, { contentType: f.type });
+        if (up.error) throw new Error('อัปโหลดสลิปไม่สำเร็จ: ' + up.error.message);
+      }
+      const { data, error } = await sb.rpc('submit_payment', {
+        p_name: creds.name, p_pin: creds.pin, p_month: $('month').value,
+        p_amount: parseInt($('amount').value, 10), p_method: method,
+        p_receiver: $('receiver').value, p_slip_path: slipPath, p_note: $('note').value.trim()
+      });
+      if (error) throw new Error(error.message);
+      if (!data.ok) throw new Error(data.message);
+
+      await refresh();
+      const owed = calcOwed(me);
+      $('successMsg').textContent = owed.length
+        ? `ยังค้างอีก ${owed.length} เดือน: ${owed.map(o => thMonth(o.month)).join(', ')}`
+        : 'ชำระครบทุกเดือนแล้ว 🎉 (รอผู้ดูแลตรวจสอบ)';
+      $('successModal').style.display = 'flex';
+      $('payForm').reset(); toggleTransfer(false); fillAmount();
+    } catch (err) {
+      alert('เกิดข้อผิดพลาด: ' + err.message);
+    } finally {
+      btn.disabled = false; btn.textContent = 'บันทึกการชำระเงิน';
+    }
+  }
+
+  function closeModal() { $('successModal').style.display = 'none'; }
+
+  // จำการเข้าสู่ระบบในแท็บนี้
+  (async () => {
+    const saved = sessionStorage.getItem('creds');
+    if (!saved) return;
+    creds = JSON.parse(saved);
+    const { data } = await sb.rpc('get_student_status', { p_name: creds.name, p_pin: creds.pin });
+    if (data) { me = data; await loadReceivers(); render(); }
+  })();
+  $('loginPin').addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
+</script>
+</body>
+</html>
