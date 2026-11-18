@@ -55,6 +55,20 @@
     .modal{display:none;position:fixed;inset:0;background:rgba(15,43,70,.6);backdrop-filter:blur(4px);justify-content:center;align-items:center;padding:20px;z-index:1000}
     .modal-content{background:#fff;padding:30px;border-radius:20px;text-align:center;max-width:400px;width:100%;animation:scaleUp .3s ease}
     .success-icon{width:60px;height:60px;background:#dcfce7;color:#16a34a;border-radius:50%;display:flex;justify-content:center;align-items:center;font-size:30px;margin:0 auto 20px}
+    .tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:20px}
+    .tabbtn{border:1.5px solid #cbd5e1;background:#f8fafc;border-radius:12px;padding:10px 4px;font-weight:600;font-size:14px;cursor:pointer;color:var(--text-main)}
+    .tabbtn.active{background:#eff6ff;border-color:var(--primary);color:var(--primary)}
+    .hint{font-size:13px;color:var(--text-muted);margin-bottom:14px}
+    .tag.prog{background:#dbeafe;color:#1d4ed8}.tag.gray{background:#e2e8f0;color:#475569}
+    .thumb{width:64px;height:64px;object-fit:cover;border-radius:10px;border:1px solid #e2e8f0}
+    .item{border:1px solid #e2e8f0;border-radius:14px;padding:14px;margin-bottom:12px;font-size:14px}
+    .item .top{display:flex;justify-content:space-between;gap:8px;align-items:flex-start;margin-bottom:6px}
+    .item small{color:var(--text-muted)}
+    .floor-card{border:1.5px solid #bfdbfe;border-radius:16px;padding:16px;margin-bottom:18px;background:#f8fbff}
+    .floor-card h4{color:var(--primary-dark);font-size:16px;margin-bottom:4px}
+    .sch{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid #e2e8f0;font-size:13px}
+    .sch.cur{background:#eff6ff;margin:0 -8px;padding:9px 8px;border-radius:8px}
+    .sch:last-child{border-bottom:none}
     @keyframes fadeIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:none}}
     @keyframes scaleUp{from{transform:scale(.9);opacity:0}to{transform:scale(1);opacity:1}}
   </style>
@@ -87,6 +101,14 @@
       <button class="btn-link" style="margin:0" onclick="logout()">ออกจากระบบ</button>
     </div>
 
+    <div id="dutyBanner"></div>
+    <div class="tabs">
+      <button type="button" class="tabbtn active" data-t="pay" onclick="showTab('pay')">💰 ค่าบ้าน</button>
+      <button type="button" class="tabbtn" data-t="repair" onclick="showTab('repair')">🔧 แจ้งซ่อม</button>
+      <button type="button" class="tabbtn" data-t="clean" onclick="showTab('clean')">🚿 ห้องน้ำ</button>
+    </div>
+
+    <div id="tab-pay">
     <div id="noticeList"></div>
     <div id="statusBox" class="status"></div>
 
@@ -141,6 +163,41 @@
       <h4>ประวัติการชำระของฉัน</h4>
       <div id="historyList"></div>
     </div>
+    </div><!-- /tab-pay (เห็นเฉพาะตัวเอง) -->
+
+    <!-- แจ้งซ่อม (ทุกคนเห็น) -->
+    <div id="tab-repair" class="hidden">
+      <p class="hint">รายการแจ้งซ่อมนี้ทุกคนในหอมองเห็นได้</p>
+      <form id="repairForm" onsubmit="submitRepair(event)">
+        <div class="form-group">
+          <label for="rTitle">เรื่องที่แจ้ง</label>
+          <input type="text" id="rTitle" maxlength="150" placeholder="เช่น หลอดไฟห้องน้ำเสีย, ก๊อกน้ำรั่ว" required>
+        </div>
+        <div class="form-group">
+          <label for="rLoc">สถานที่</label>
+          <select id="rLoc">
+            <option>ห้องน้ำชั้นบน</option><option>ห้องน้ำชั้นล่าง</option><option>ห้องนอน</option>
+            <option>ห้องครัว / ซักล้าง</option><option>อื่น ๆ</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="rDetail">รายละเอียด</label>
+          <textarea id="rDetail" rows="2" maxlength="1000" placeholder="อธิบายเพิ่มเติม (ถ้ามี)"></textarea>
+        </div>
+        <div class="form-group">
+          <label for="rPhoto">แนบรูป (ถ้ามี)</label>
+          <input type="file" id="rPhoto" accept="image/*">
+        </div>
+        <button type="submit" class="btn-primary" id="repairBtn">ส่งเรื่องแจ้งซ่อม</button>
+      </form>
+      <div class="history"><h4>รายการแจ้งซ่อมทั้งหมด</h4><div id="repairList"></div></div>
+    </div>
+
+    <!-- เวรทำความสะอาดห้องน้ำ (ทุกคนเห็น) -->
+    <div id="tab-clean" class="hidden">
+      <p class="hint">เวรหมุนเวียนทุก 2 สัปดาห์ ครบทุกคนแล้ววนใหม่ · ทุกคนในหอเห็นตารางและรูปได้</p>
+      <div id="cleanBoard"><p class="hint">กำลังโหลด...</p></div>
+    </div>
   </div>
 </div>
 
@@ -155,9 +212,8 @@
 
 <script>
   // ====== ตั้งค่า Supabase (Project Settings > API) ======
-  const SUPABASE_URL = 'https://YOUR-PROJECT.supabase.co';
-  const SUPABASE_ANON_KEY = 'YOUR-ANON-PUBLIC-KEY';
-  // =======================================================
+  const SUPABASE_URL = 'https://dlnweagzhrwcbsnahuqk.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRsbndlYWd6aHJ3Y2JzbmFodXFrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTUwMDQ1NDQsImV4cCI6MjExMDU4MDU0NH0.SLxKmlQlMhsnMgK5JCQswfdUp8NcjD4PyTXNjtjgJSw';
   const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   let me = null, creds = null;
 
@@ -220,6 +276,7 @@
     $('noticeList').innerHTML = me.notices.map(n =>
       `<div class="notice"><b>📢 แจ้งเตือนจากผู้ดูแล</b><br>${esc(n.message)}</div>`).join('');
     if (showNotices && me.notices.length) sb.rpc('mark_notices_read', { p_name: creds.name, p_pin: creds.pin });
+    if (showNotices) { showTab('pay'); loadBoard(); }
 
     // ยอดค้าง
     const owed = calcOwed(me), box = $('statusBox'), total = owed.reduce((a, b) => a + b.remaining, 0);
@@ -294,6 +351,150 @@
   }
 
   function closeModal() { $('successModal').style.display = 'none'; }
+
+  // ================= แจ้งซ่อม + ห้องน้ำ =================
+  let board = null;
+  const FL = { 'บน': 'ชั้นบน', 'ล่าง': 'ชั้นล่าง' };
+  const thShort = d => new Date(d + 'T00:00:00+07:00').toLocaleDateString('th-TH', { day: 'numeric', month: 'short' });
+  const thDT = d => new Date(d).toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short', timeZone: 'Asia/Bangkok' });
+  const photoUrl = p => sb.storage.from('dorm-photos').getPublicUrl(p).data.publicUrl;
+  const thumb = p => p ? `<a href="${esc(photoUrl(p))}" target="_blank" rel="noopener"><img class="thumb" src="${esc(photoUrl(p))}" loading="lazy" alt="รูป"></a>` : '';
+
+  function showTab(t) {
+    document.querySelectorAll('.tabbtn').forEach(b => b.classList.toggle('active', b.dataset.t === t));
+    ['pay', 'repair', 'clean'].forEach(x => $('tab-' + x).classList.toggle('hidden', x !== t));
+    if (t !== 'pay') loadBoard();
+  }
+
+  // ย่อรูปก่อนอัปโหลด (รูปจากมือถือใหญ่มาก)
+  function compressImage(file) {
+    return new Promise((resolve, reject) => {
+      const img = new Image(), url = URL.createObjectURL(file);
+      img.onload = () => {
+        const max = 1280, r = Math.min(1, max / Math.max(img.width, img.height));
+        const c = document.createElement('canvas');
+        c.width = Math.round(img.width * r); c.height = Math.round(img.height * r);
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(url);
+        c.toBlob(b => b ? resolve(b) : reject(new Error('แปลงรูปไม่สำเร็จ')), 'image/jpeg', 0.8);
+      };
+      img.onerror = () => reject(new Error('เปิดไฟล์รูปไม่ได้ (ลองถ่ายใหม่หรือเลือกไฟล์ JPG/PNG)'));
+      img.src = url;
+    });
+  }
+  async function uploadPhoto(file, folder) {
+    const blob = await compressImage(file);
+    const path = `${folder}/${new Date().toISOString().slice(0, 7)}/${crypto.randomUUID()}.jpg`;
+    const { error } = await sb.storage.from('dorm-photos').upload(path, blob, { contentType: 'image/jpeg' });
+    if (error) throw new Error('อัปโหลดรูปไม่สำเร็จ: ' + error.message);
+    return path;
+  }
+
+  async function loadBoard() {
+    if (!creds) return;
+    const { data, error } = await sb.rpc('get_dorm_board', { p_name: creds.name, p_pin: creds.pin });
+    if (error || !data) {
+      const m = '<p class="err">โหลดข้อมูลไม่สำเร็จ' + (error ? ': ' + esc(error.message) : '') + '</p>';
+      $('cleanBoard').innerHTML = m; $('repairList').innerHTML = m; return;
+    }
+    board = data; renderBoard();
+  }
+
+  function renderBoard() {
+    const meB = board.me;
+
+    // แบนเนอร์เตือนเวร
+    let banner = '';
+    if (meB.floor) {
+      const cur = board.floors[meB.floor].schedule.find(x => x.is_current);
+      if (cur && cur.student_id === meB.id && !cur.done)
+        banner = `<div class="notice" style="background:#eff6ff;border-color:#bfdbfe"><b>🚿 ถึงเวรคุณทำความสะอาดห้องน้ำ${FL[meB.floor]}</b><br>รอบวันที่ ${thShort(cur.period_start)} – ${thShort(cur.period_end)} · ถ่ายรูปส่งหลังทำเสร็จ<br><button type="button" class="btn-small" onclick="showTab('clean')">ไปส่งรูป</button></div>`;
+    }
+    $('dutyBanner').innerHTML = banner;
+
+    // รายการแจ้งซ่อม
+    const st = { new: ['pending', 'รอรับเรื่อง'], in_progress: ['prog', 'กำลังซ่อม'], done: ['confirmed', 'ซ่อมแล้ว'] };
+    $('repairList').innerHTML = board.repairs.length ? board.repairs.map(r => `
+      <div class="item">
+        <div class="top"><b>${esc(r.title)}</b><span class="tag ${st[r.status][0]}">${st[r.status][1]}</span></div>
+        <small>${esc(r.location || '')} · แจ้งโดย ${esc(r.reporter)} · ${thDT(r.created_at)}</small>
+        ${r.detail ? `<p style="margin-top:6px">${esc(r.detail)}</p>` : ''}
+        ${r.admin_note ? `<p style="margin-top:6px;color:#b45309"><b>ผู้ดูแล:</b> ${esc(r.admin_note)}</p>` : ''}
+        ${r.photo_path ? `<div style="margin-top:8px">${thumb(r.photo_path)}</div>` : ''}
+      </div>`).join('') : '<p class="hint">ยังไม่มีรายการแจ้งซ่อม</p>';
+
+    // ห้องน้ำ
+    $('cleanBoard').innerHTML = ['บน', 'ล่าง'].map(renderFloor).join('');
+  }
+
+  function renderFloor(fl) {
+    const f = board.floors[fl], n = f.members.length, today = board.today, meId = board.me.id;
+    if (!n) return `<div class="floor-card"><h4>ห้องน้ำ${FL[fl]}</h4><p class="hint">ยังไม่มีสมาชิกในเวรชั้นนี้</p></div>`;
+    const cur = f.schedule.find(x => x.is_current);
+    const mine = cur && cur.student_id === meId;
+
+    const rows = f.schedule.map(it => {
+      let tag;
+      if (it.done) tag = '<span class="tag confirmed">✓ ทำแล้ว</span>';
+      else if (it.period_end < today) tag = '<span class="tag rejected">ยังไม่ส่งรูป</span>';
+      else if (it.is_current) tag = '<span class="tag pending">รอบนี้ · รอส่งรูป</span>';
+      else tag = '<span class="tag gray">ถัดไป</span>';
+      return `<div class="sch ${it.is_current ? 'cur' : ''}">
+        <div><b>${esc(it.name || '-')}</b>${it.student_id === meId ? ' <small>(คุณ)</small>' : ''}<br><small>${thShort(it.period_start)} – ${thShort(it.period_end)}${it.done_at ? ' · ส่งเมื่อ ' + thDT(it.done_at) : ''}</small></div>
+        <div style="display:flex;align-items:center;gap:8px">${tag}${thumb(it.photo_path)}</div></div>`;
+    }).join('');
+
+    const upload = mine ? `
+      <div style="margin:12px 0;padding:12px;border:1.5px dashed var(--primary-light);border-radius:12px;background:#fff">
+        <label for="cleanFile">${cur.done ? '✓ ส่งรูปรอบนี้แล้ว (ส่งใหม่เพื่อแทนที่ได้)' : 'ถึงเวรคุณ! ถ่ายรูปห้องน้ำหลังทำความสะอาด'}</label>
+        <input type="file" id="cleanFile" accept="image/*" capture="environment">
+        <button type="button" class="btn-primary" id="cleanBtn" onclick="submitCleaning()">ส่งรูปยืนยัน</button>
+      </div>` : '';
+
+    return `<div class="floor-card">
+      <h4>🚿 ห้องน้ำ${FL[fl]}</h4>
+      <p class="hint" style="margin-bottom:8px">สมาชิก ${n} คน · หมุนเวียนครบ ${n} รอบ (${n * 2} สัปดาห์) แล้ววนใหม่</p>
+      ${upload}${rows}</div>`;
+  }
+
+  async function submitCleaning() {
+    const f = $('cleanFile').files[0];
+    if (!f) return alert('กรุณาถ่ายหรือเลือกรูปก่อน');
+    const btn = $('cleanBtn'); btn.disabled = true; btn.textContent = 'กำลังอัปโหลด...';
+    try {
+      const path = await uploadPhoto(f, 'clean');
+      const { data, error } = await sb.rpc('submit_cleaning', { p_name: creds.name, p_pin: creds.pin, p_photo_path: path });
+      if (error) throw new Error(error.message);
+      if (!data.ok) throw new Error(data.message);
+      await loadBoard();
+      alert('ส่งรูปเรียบร้อย ขอบคุณที่ทำความสะอาด 🙏');
+    } catch (err) {
+      alert('เกิดข้อผิดพลาด: ' + err.message);
+      btn.disabled = false; btn.textContent = 'ส่งรูปยืนยัน';
+    }
+  }
+
+  async function submitRepair(e) {
+    e.preventDefault();
+    const btn = $('repairBtn'); btn.disabled = true; btn.textContent = 'กำลังส่ง...';
+    try {
+      const f = $('rPhoto').files[0];
+      const path = f ? await uploadPhoto(f, 'repair') : '';
+      const { data, error } = await sb.rpc('submit_repair', {
+        p_name: creds.name, p_pin: creds.pin, p_title: $('rTitle').value,
+        p_location: $('rLoc').value, p_detail: $('rDetail').value.trim(), p_photo_path: path
+      });
+      if (error) throw new Error(error.message);
+      if (!data.ok) throw new Error(data.message);
+      $('repairForm').reset();
+      await loadBoard();
+      alert('ส่งเรื่องแจ้งซ่อมแล้ว');
+    } catch (err) {
+      alert('เกิดข้อผิดพลาด: ' + err.message);
+    } finally {
+      btn.disabled = false; btn.textContent = 'ส่งเรื่องแจ้งซ่อม';
+    }
+  }
 
   // จำการเข้าสู่ระบบในแท็บนี้
   (async () => {
