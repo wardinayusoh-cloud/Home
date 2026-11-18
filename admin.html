@@ -35,6 +35,10 @@
     .tag.ok{background:#dcfce7;color:#15803d}.tag.bad{background:#fee2e2;color:#b91c1c}.tag.wait{background:#fef9c3;color:#a16207}
     .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
     .hidden{display:none!important}
+    .thumb{width:56px;height:56px;object-fit:cover;border-radius:8px;border:1px solid #e2e8f0}
+    .tag.prog{background:#dbeafe;color:#1d4ed8}.tag.gray{background:#e2e8f0;color:#475569}
+    .floor{border:1.5px solid #bfdbfe;border-radius:16px;padding:16px;margin-bottom:16px;background:#f8fbff}
+    .floor h4{color:var(--primary-dark);margin-bottom:8px}
     #loginCard{max-width:380px;margin:80px auto}
     #loginCard input{width:100%;margin-bottom:12px}
     .err{color:var(--danger);font-size:14px;margin-top:8px}
@@ -73,6 +77,8 @@
       <div class="tab active" data-tab="summary" onclick="showTab('summary')">สรุปรายคน</div>
       <div class="tab" data-tab="pending" onclick="showTab('pending')">รอตรวจสอบ <span id="pBadge"></span></div>
       <div class="tab" data-tab="all" onclick="showTab('all')">รายการทั้งหมด</div>
+      <div class="tab" data-tab="repair" onclick="showTab('repair')">แจ้งซ่อม <span id="rBadge"></span></div>
+      <div class="tab" data-tab="clean" onclick="showTab('clean')">เวรห้องน้ำ</div>
       <div class="tab" data-tab="students" onclick="showTab('students')">จัดการนักเรียน</div>
     </div>
 
@@ -111,6 +117,21 @@
       </table></div>
     </div>
 
+    <!-- แจ้งซ่อม -->
+    <div class="card hidden" id="tab-repair">
+      <h3>รายการแจ้งซ่อม</h3>
+      <div class="scroll"><table>
+        <thead><tr><th>วันที่</th><th>ผู้แจ้ง</th><th>เรื่อง</th><th>รูป</th><th>สถานะ / บันทึกถึงนักเรียน</th></tr></thead>
+        <tbody id="repairBody"></tbody>
+      </table></div>
+    </div>
+
+    <!-- เวรห้องน้ำ -->
+    <div class="card hidden" id="tab-clean">
+      <h3>ตารางเวรทำความสะอาดห้องน้ำ</h3>
+      <div id="cleanAdmin"></div>
+    </div>
+
     <!-- จัดการนักเรียน -->
     <div class="card hidden" id="tab-students">
       <h3>เพิ่มนักเรียน</h3>
@@ -119,6 +140,7 @@
         <select id="nGrade"><option>ม.4</option><option>ม.5</option><option>ม.6</option></select>
         <input type="text" id="nPin" placeholder="รหัส 4 หลัก" maxlength="4" style="width:110px">
         <input type="month" id="nStart">
+        <select id="nBath"><option value="">ห้องน้ำ: ไม่ระบุ</option><option value="บน">ห้องน้ำชั้นบน</option><option value="ล่าง">ห้องน้ำชั้นล่าง</option></select>
         <button class="btn" onclick="addStudent()">เพิ่ม</button>
       </div>
       <div class="row">
@@ -126,8 +148,14 @@
         <input type="number" id="feeInput" style="width:110px">
         <button class="btn sm" onclick="saveFee()">บันทึก</button>
       </div>
+      <div class="row">
+        <label style="font-size:14px">วันเริ่มรอบทำความสะอาดแรก (ควรเป็นวันจันทร์)</label>
+        <input type="date" id="anchorInput">
+        <button class="btn sm" onclick="saveAnchor()">บันทึก</button>
+        <small style="color:var(--text-muted)">⚠ เปลี่ยนแล้วตารางเวรจะเลื่อนทั้งหมด</small>
+      </div>
       <div class="scroll"><table>
-        <thead><tr><th>ชื่อ</th><th>ชั้น</th><th>รหัส</th><th>เริ่มนับ</th><th>สถานะ</th><th></th></tr></thead>
+        <thead><tr><th>ชื่อ</th><th>ชั้น</th><th>รหัส</th><th>เริ่มนับ</th><th>ห้องน้ำ (ชั้น / ลำดับเวร)</th><th>สถานะ</th><th></th></tr></thead>
         <tbody id="studentBody"></tbody>
       </table></div>
     </div>
@@ -136,8 +164,8 @@
 
 <script>
   // ====== ตั้งค่า Supabase (ใช้ค่าเดียวกับ index.html) ======
-  const SUPABASE_URL = 'https://YOUR-PROJECT.supabase.co';
-  const SUPABASE_ANON_KEY = 'YOUR-ANON-PUBLIC-KEY';
+ const SUPABASE_URL = 'https://dlnweagzhrwcbsnahuqk.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRsbndlYWd6aHJ3Y2JzbmFodXFrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTUwMDQ1NDQsImV4cCI6MjExMDU4MDU0NH0.SLxKmlQlMhsnMgK5JCQswfdUp8NcjD4PyTXNjtjgJSw';
   // ==========================================================
   const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   const $ = id => document.getElementById(id);
@@ -176,12 +204,14 @@
     const [s, p, st, n] = await Promise.all([
       sb.from('students').select('*').order('full_name'),
       sb.from('payments').select('*').order('created_at', { ascending: false }),
-      sb.from('settings').select('monthly_fee').eq('id', 1).single(),
+      sb.from('settings').select('monthly_fee, cleaning_anchor').eq('id', 1).single(),
       sb.from('notices').select('student_id, created_at, read_at').order('created_at', { ascending: false })
     ]);
     students = s.data || []; payments = p.data || []; notices = n.data || [];
     fee = st.data?.monthly_fee ?? 800; $('feeInput').value = fee;
+    $('anchorInput').value = st.data?.cleaning_anchor ?? '';
     computeRows(); renderAll_();
+    loadBoard();
   }
 
   function computeRows() {
@@ -264,13 +294,21 @@
   function renderStudents() {
     $('studentBody').innerHTML = students.map(s => `<tr>
       <td>${esc(s.full_name)}</td><td>${esc(s.grade)}</td><td>${esc(s.pin)}</td><td>${thMonth(s.start_month.slice(0, 7))}</td>
+      <td style="white-space:nowrap">
+        <select onchange="setBath('${s.id}', this.value)">
+          <option value="">-</option>
+          <option value="บน" ${s.bathroom === 'บน' ? 'selected' : ''}>ชั้นบน</option>
+          <option value="ล่าง" ${s.bathroom === 'ล่าง' ? 'selected' : ''}>ชั้นล่าง</option>
+        </select>
+        <input type="number" min="1" style="width:64px" placeholder="ลำดับ" value="${s.bathroom_order ?? ''}" onchange="setBathOrder('${s.id}', this.value)">
+      </td>
       <td>${s.active ? '<span class="tag ok">ใช้งาน</span>' : '<span class="tag bad">ปิด</span>'}</td>
       <td><button class="btn sm gray" onclick="toggleActive('${s.id}',${!s.active})">${s.active ? 'ปิดใช้งาน' : 'เปิดใช้งาน'}</button></td></tr>`).join('');
   }
 
   function showTab(t) {
     document.querySelectorAll('.tab').forEach(e => e.classList.toggle('active', e.dataset.tab === t));
-    ['summary', 'pending', 'all', 'students'].forEach(x => $('tab-' + x).classList.toggle('hidden', x !== t));
+    ['summary', 'pending', 'all', 'repair', 'clean', 'students'].forEach(x => $('tab-' + x).classList.toggle('hidden', x !== t));
   }
 
   async function openSlip(path) {
@@ -307,7 +345,7 @@
   async function addStudent() {
     const full_name = $('nName').value.trim(), pin = $('nPin').value.trim(), start = $('nStart').value;
     if (!full_name || !/^\d{4}$/.test(pin) || !start) return alert('กรอกชื่อ, รหัส 4 หลัก (ตัวเลข) และเดือนเริ่มนับ');
-    const { error } = await sb.from('students').insert({ full_name, grade: $('nGrade').value, pin, start_month: start + '-01' });
+    const { error } = await sb.from('students').insert({ full_name, grade: $('nGrade').value, pin, start_month: start + '-01', bathroom: $('nBath').value || null });
     if (error) return alert(error.message.includes('duplicate') ? 'มีชื่อนี้อยู่แล้ว' : error.message);
     $('nName').value = ''; $('nPin').value = '';
     await loadAll();
@@ -318,6 +356,87 @@
   async function saveFee() {
     const v = parseInt($('feeInput').value, 10); if (!v || v < 1) return;
     const { error } = await sb.from('settings').update({ monthly_fee: v }).eq('id', 1);
+    if (error) return alert(error.message);
+    alert('บันทึกแล้ว'); await loadAll();
+  }
+
+  // ================= แจ้งซ่อม + เวรห้องน้ำ =================
+  let dorm = null;
+  const FL = { 'บน': 'ชั้นบน', 'ล่าง': 'ชั้นล่าง' };
+  const thShort = d => new Date(d + 'T00:00:00+07:00').toLocaleDateString('th-TH', { day: 'numeric', month: 'short' });
+  const photoUrl = p => sb.storage.from('dorm-photos').getPublicUrl(p).data.publicUrl;
+  const thumb = p => p ? `<a href="${esc(photoUrl(p))}" target="_blank" rel="noopener"><img class="thumb" src="${esc(photoUrl(p))}" loading="lazy" alt="รูป"></a>` : '';
+
+  async function loadBoard() {
+    const { data, error } = await sb.rpc('admin_dorm_board');
+    if (error) {
+      const m = 'โหลดไม่ได้: ' + esc(error.message) + ' (ลืมรัน schema2.sql หรือเปล่า?)';
+      $('repairBody').innerHTML = `<tr><td colspan="5" class="empty">${m}</td></tr>`;
+      $('cleanAdmin').innerHTML = `<p class="empty">${m}</p>`;
+      return;
+    }
+    dorm = data; renderRepairs(); renderClean();
+  }
+
+  function renderRepairs() {
+    const open = dorm.repairs.filter(r => r.status !== 'done').length;
+    $('rBadge').textContent = open ? `(${open})` : '';
+    $('repairBody').innerHTML = dorm.repairs.length ? dorm.repairs.map(r => `<tr>
+      <td>${thDate(r.created_at)}</td><td>${esc(r.reporter)}</td>
+      <td><b>${esc(r.title)}</b><br><small>${esc(r.location || '')}</small>${r.detail ? `<br>${esc(r.detail)}` : ''}</td>
+      <td>${thumb(r.photo_path)}</td>
+      <td style="white-space:nowrap">
+        <select id="rs_${r.id}">
+          <option value="new" ${r.status === 'new' ? 'selected' : ''}>รอรับเรื่อง</option>
+          <option value="in_progress" ${r.status === 'in_progress' ? 'selected' : ''}>กำลังซ่อม</option>
+          <option value="done" ${r.status === 'done' ? 'selected' : ''}>ซ่อมแล้ว</option>
+        </select>
+        <input type="text" id="rn_${r.id}" placeholder="บันทึก (นักเรียนเห็น)" value="${esc(r.admin_note || '')}" style="width:170px">
+        <button class="btn sm" onclick="saveRepair('${r.id}')">บันทึก</button>
+      </td></tr>`).join('') : '<tr><td colspan="5" class="empty">ยังไม่มีรายการแจ้งซ่อม</td></tr>';
+  }
+
+  async function saveRepair(id) {
+    const { error } = await sb.from('repair_requests').update({
+      status: $('rs_' + id).value, admin_note: $('rn_' + id).value.trim() || null, updated_at: new Date().toISOString()
+    }).eq('id', id);
+    if (error) return alert(error.message);
+    await loadBoard();
+  }
+
+  function renderClean() {
+    $('cleanAdmin').innerHTML = ['บน', 'ล่าง'].map(fl => {
+      const f = dorm.floors[fl], n = f.members.length;
+      if (!n) return `<div class="floor"><h4>ห้องน้ำ${FL[fl]}</h4><p class="empty">ยังไม่มีสมาชิก (กำหนดที่แท็บ "จัดการนักเรียน")</p></div>`;
+      const rows = f.schedule.map(it => {
+        let tag;
+        if (it.done) tag = '<span class="tag ok">✓ ทำแล้ว</span>';
+        else if (it.period_end < dorm.today) tag = '<span class="tag bad">ไม่ส่งรูป</span>';
+        else if (it.is_current) tag = '<span class="tag wait">รอบนี้ · รอรูป</span>';
+        else tag = '<span class="tag gray">ถัดไป</span>';
+        return `<tr${it.is_current ? ' style="background:#eff6ff"' : ''}>
+          <td>${thShort(it.period_start)} – ${thShort(it.period_end)}</td><td><b>${esc(it.name || '-')}</b></td>
+          <td>${tag}</td><td>${it.done_at ? thDate(it.done_at) : ''}</td><td>${thumb(it.photo_path)}</td></tr>`;
+      }).join('');
+      return `<div class="floor"><h4>ห้องน้ำ${FL[fl]} · ${n} คน (หมุนครบ ${n * 2} สัปดาห์)</h4>
+        <div class="scroll"><table><thead><tr><th>รอบ</th><th>ผู้รับผิดชอบ</th><th>สถานะ</th><th>ส่งเมื่อ</th><th>รูป</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
+    }).join('');
+  }
+
+  async function setBath(id, v) {
+    const { error } = await sb.from('students').update({ bathroom: v || null }).eq('id', id);
+    if (error) return alert(error.message);
+    await loadAll();
+  }
+  async function setBathOrder(id, v) {
+    const { error } = await sb.from('students').update({ bathroom_order: v ? parseInt(v, 10) : null }).eq('id', id);
+    if (error) return alert(error.message);
+    await loadAll();
+  }
+  async function saveAnchor() {
+    const v = $('anchorInput').value; if (!v) return;
+    if (!confirm('เปลี่ยนวันเริ่มรอบ ตารางเวรทั้งหมดจะเลื่อน ยืนยัน?')) return;
+    const { error } = await sb.from('settings').update({ cleaning_anchor: v }).eq('id', 1);
     if (error) return alert(error.message);
     alert('บันทึกแล้ว'); await loadAll();
   }
