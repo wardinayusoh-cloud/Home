@@ -423,7 +423,7 @@
       if (error) throw new Error(error.message);
       if (!data.ok) throw new Error(data.message);
       $('guestForm').reset(); toggleBox('g', false);
-      showSuccess('ส่งข้อมูลการชำระเงินแล้ว รอผู้ดูแลตรวจสอบ ขอบคุณครับ/ค่ะ');
+      showSuccess('บันทึกการชำระเงินเรียบร้อย ขอบคุณครับ/ค่ะ');
     } catch (err) {
       alert('เกิดข้อผิดพลาด: ' + err.message);
     } finally {
@@ -483,7 +483,7 @@
     // ประวัติ
     const label = { pending: 'รอตรวจสอบ', confirmed: 'ยืนยันแล้ว', rejected: 'ไม่ผ่าน' };
     $('historyList').innerHTML = me.payments.length ? me.payments.map(p =>
-      `<div class="h-row"><span>${thMonth(p.month_key)} · ${p.amount.toLocaleString()} บาท · ${esc(p.method)}</span><span class="tag ${p.status}">${label[p.status]}</span></div>`).join('')
+      `<div class="h-row"><span>${thMonth(p.month_key)} · ${p.amount.toLocaleString()} บาท · ${esc(p.method)}</span><span class="tag confirmed">บันทึกแล้ว</span></div>`).join('')
       : '<p style="font-size:13px;color:var(--text-muted)">ยังไม่มีประวัติ</p>';
   }
 
@@ -515,7 +515,7 @@
       const owed = calcOwed(me);
       showSuccess(owed.length
         ? `ยังค้างอีก ${owed.length} เดือน: ${owed.map(o => thMonth(o.month)).join(', ')}`
-        : 'ชำระครบทุกเดือนแล้ว 🎉 (รอผู้ดูแลตรวจสอบ)');
+        : 'ชำระครบทุกเดือนแล้ว 🎉');
       $('payForm').reset(); toggleBox('p', false); fillAmount();
     } catch (err) {
       alert('เกิดข้อผิดพลาด: ' + err.message);
