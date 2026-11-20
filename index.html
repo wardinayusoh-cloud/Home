@@ -38,10 +38,6 @@
     .divider{display:flex;align-items:center;gap:10px;color:var(--text-muted);font-size:13px;margin:22px 0 4px}
     .divider:before,.divider:after{content:"";flex:1;height:1px;background:#e2e8f0}
     .hidden{display:none!important}
-    .ledger{width:100%;border-collapse:collapse;font-size:13px}
-    .ledger th{text-align:left;color:var(--text-muted);font-weight:600;padding:6px 4px;border-bottom:2px solid #e2e8f0}
-    .ledger td{padding:8px 4px;border-bottom:1px solid #f1f5f9;vertical-align:top}
-    .ledger .r{text-align:right}.ledger th.r{text-align:right}
     .status{border-radius:16px;padding:18px;margin-bottom:20px}
     .status.bad{background:#fef2f2;border:1.5px solid #fecaca}
     .status.good{background:#f0fdf4;border:1.5px solid #bbf7d0}
@@ -62,8 +58,8 @@
     .modal{display:none;position:fixed;inset:0;background:rgba(15,43,70,.6);backdrop-filter:blur(4px);justify-content:center;align-items:center;padding:20px;z-index:1000}
     .modal-content{background:#fff;padding:30px;border-radius:20px;text-align:center;max-width:400px;width:100%;animation:scaleUp .3s ease}
     .success-icon{width:60px;height:60px;background:#dcfce7;color:#16a34a;border-radius:50%;display:flex;justify-content:center;align-items:center;font-size:30px;margin:0 auto 20px}
-    .tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:20px}
-    .tabbtn{border:1.5px solid #cbd5e1;background:#f8fafc;border-radius:12px;padding:10px 2px;font-weight:600;font-size:13px;cursor:pointer;color:var(--text-main)}
+    .tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:20px}
+    .tabbtn{border:1.5px solid #cbd5e1;background:#f8fafc;border-radius:12px;padding:10px 4px;font-weight:600;font-size:14px;cursor:pointer;color:var(--text-main)}
     .tabbtn.active{background:#eff6ff;border-color:var(--primary);color:var(--primary)}
     .hint{font-size:13px;color:var(--text-muted);margin-bottom:14px}
     .tag.prog{background:#dbeafe;color:#1d4ed8}.tag.gray{background:#e2e8f0;color:#475569}
@@ -158,7 +154,6 @@
       <button type="button" class="tabbtn active" data-t="clean" onclick="showTab('clean')">🚿 ห้องน้ำ</button>
       <button type="button" class="tabbtn" data-t="repair" onclick="showTab('repair')">🔧 แจ้งซ่อม</button>
       <button type="button" class="tabbtn" data-t="pay" onclick="showTab('pay')">💰 ค่าบ้าน</button>
-      <button type="button" class="tabbtn" data-t="hist" onclick="showTab('hist')">📜 ประวัติ</button>
     </div>
 
     <!-- เวรทำความสะอาดห้องน้ำ (ทุกคนเห็น ไม่ใช้รหัส) -->
@@ -256,35 +251,6 @@
           <button type="submit" class="btn-primary" id="submitBtn">บันทึกการชำระเงิน</button>
         </form>
 
-        <button type="button" class="btn-link" onclick="lockPay()">🔒 ล็อกหน้านี้</button>
-      </div>
-    </div>
-
-    <!-- ประวัติของฉัน (ต้องใส่รหัส เห็นเฉพาะตัวเอง) -->
-    <div id="tab-hist" class="hidden">
-      <div id="histLock">
-        <p class="hint">🔒 ใส่รหัส 4 หลักของคุณเพื่อดูประวัติและยอดค้างของตัวเอง</p>
-        <div class="form-group">
-          <label for="histPin">รหัส 4 หลัก</label>
-          <input type="password" id="histPin" inputmode="numeric" maxlength="4" placeholder="รหัสที่ได้รับจากพี่ดูแล">
-        </div>
-        <button type="button" class="btn-primary" id="unlockBtnH" onclick="unlockPay('hist')">ปลดล็อก</button>
-        <div class="err" id="histErr"></div>
-      </div>
-
-      <div id="histContent" class="hidden">
-        <div id="hSummary"></div>
-        <div class="history" style="margin-top:0;border-top:none;padding-top:0">
-          <h4>ยอดรายเดือน</h4>
-          <table class="ledger">
-            <thead><tr><th>เดือน</th><th class="r">ต้องจ่าย</th><th class="r">จ่ายแล้ว</th><th class="r">คงเหลือ</th><th>สถานะ</th></tr></thead>
-            <tbody id="hMonths"></tbody>
-          </table>
-        </div>
-        <div class="history">
-          <h4>รายการที่ชำระแล้ว</h4>
-          <div id="historyList"></div>
-        </div>
         <button type="button" class="btn-link" onclick="lockPay()">🔒 ล็อกหน้านี้</button>
       </div>
     </div>
@@ -437,7 +403,7 @@
 
   function showTab(t, skipLoad) {
     document.querySelectorAll('.tabbtn').forEach(b => b.classList.toggle('active', b.dataset.t === t));
-    ['clean', 'repair', 'pay', 'hist'].forEach(x => $('tab-' + x).classList.toggle('hidden', x !== t));
+    ['clean', 'repair', 'pay'].forEach(x => $('tab-' + x).classList.toggle('hidden', x !== t));
     if (!skipLoad && (t === 'clean' || t === 'repair')) loadBoard();
   }
 
@@ -473,28 +439,24 @@
   }
 
   // ---------- ค่าบ้าน (ต้องใส่รหัส) ----------
-  async function unlockPay(src) {
-    const h = src === 'hist';
-    const pin = $(h ? 'histPin' : 'payPin').value.trim(), errEl = $(h ? 'histErr' : 'payErr'), btn = $(h ? 'unlockBtnH' : 'unlockBtn');
-    errEl.textContent = '';
-    if (!pin) { errEl.textContent = 'กรุณากรอกรหัส'; return; }
-    btn.disabled = true; btn.textContent = 'กำลังตรวจสอบ...';
+  async function unlockPay() {
+    const pin = $('payPin').value.trim();
+    $('payErr').textContent = '';
+    if (!pin) { $('payErr').textContent = 'กรุณากรอกรหัส'; return; }
+    $('unlockBtn').disabled = true; $('unlockBtn').textContent = 'กำลังตรวจสอบ...';
     const { data, error } = await sb.rpc('get_student_status', { p_name: creds.name, p_pin: pin });
-    btn.disabled = false; btn.textContent = 'ปลดล็อก';
-    if (error) { errEl.textContent = 'เชื่อมต่อระบบไม่ได้: ' + error.message; return; }
-    if (!data) { errEl.textContent = 'รหัสไม่ถูกต้อง'; return; }
+    $('unlockBtn').disabled = false; $('unlockBtn').textContent = 'ปลดล็อก';
+    if (error) { $('payErr').textContent = 'เชื่อมต่อระบบไม่ได้: ' + error.message; return; }
+    if (!data) { $('payErr').textContent = 'รหัสไม่ถูกต้อง'; return; }
     payPin = pin; me = data;
-    ['payLock', 'histLock'].forEach(id => $(id).classList.add('hidden'));
-    ['payContent', 'histContent'].forEach(id => $(id).classList.remove('hidden'));
+    $('payLock').classList.add('hidden'); $('payContent').classList.remove('hidden');
     renderPay(true);
   }
 
   function lockPay() {
     payPin = null; me = null;
-    ['payPin', 'histPin'].forEach(id => $(id).value = '');
-    ['payErr', 'histErr'].forEach(id => $(id).textContent = '');
-    ['payContent', 'histContent'].forEach(id => $(id).classList.add('hidden'));
-    ['payLock', 'histLock'].forEach(id => $(id).classList.remove('hidden'));
+    $('payPin').value = ''; $('payErr').textContent = '';
+    $('payContent').classList.add('hidden'); $('payLock').classList.remove('hidden');
   }
 
   async function refresh() {
@@ -525,33 +487,6 @@
     $('month').innerHTML = opts.map(m => `<option value="${m}">${thMonth(m)}</option>`).join('');
     fillAmount();
 
-    renderHistory();
-  }
-
-  function renderHistory() {
-    const rows = ledger(me), cur = curKey();
-    const owed = rows.filter(r => r.month <= cur && r.remaining > 0);
-    const sum = a => a.reduce((t, r) => t + r.remaining, 0);
-    const thisM = sum(owed.filter(r => r.month === cur)), prev = sum(owed.filter(r => r.month < cur));
-    $('hSummary').innerHTML = owed.length
-      ? `<div class="status bad"><h3>ค้างชำระรวม ${(thisM + prev).toLocaleString()} บาท</h3>
-          <div style="font-size:14px">เดือนนี้ ${thisM.toLocaleString()} บาท · เดือนก่อนหน้า ${prev.toLocaleString()} บาท</div></div>`
-      : '<div class="status good"><h3>✓ ไม่มียอดค้าง</h3><span style="font-size:14px">ขอบคุณครับ/ค่ะ</span></div>';
-
-    const tag = r => (r.due === 0 && r.paid === 0) ? '-'
-      : r.remaining <= 0 ? '<span class="tag confirmed">ครบ</span>'
-      : r.month > cur ? '<span class="tag gray">ยังไม่ถึงกำหนด</span>'
-      : r.paid > 0 ? '<span class="tag pending">จ่ายบางส่วน</span>'
-      : '<span class="tag rejected">ค้าง</span>';
-    $('hMonths').innerHTML = rows.length ? rows.slice().reverse().map(r => `<tr>
-      <td>${thMonth(r.month)}${r.custom ? ' <small title="ผู้ดูแลกำหนดยอด">✎</small>' : ''}${r.note ? `<br><small style="color:var(--text-muted)">${esc(r.note)}</small>` : ''}</td>
-      <td class="r">${r.due.toLocaleString()}</td><td class="r">${r.paid.toLocaleString()}</td>
-      <td class="r">${Math.max(r.remaining, 0).toLocaleString()}</td><td>${tag(r)}</td></tr>`).join('')
-      : '<tr><td colspan="5" style="color:var(--text-muted);padding:10px 4px">ยังไม่มีข้อมูล</td></tr>';
-
-    $('historyList').innerHTML = me.payments.length ? me.payments.map(p =>
-      `<div class="h-row"><span>${thMonth(p.month_key)} · ${p.amount.toLocaleString()} บาท · ${esc(p.method)}<br><small style="color:var(--text-muted)">${thDT(p.created_at)}</small></span><span class="tag confirmed">บันทึกแล้ว</span></div>`).join('')
-      : '<p style="font-size:13px;color:var(--text-muted)">ยังไม่มีประวัติ</p>';
   }
 
   function fillAmount() {
@@ -707,8 +642,7 @@
     if (data) { creds = { name: saved }; board = data; enterMain(); }
   })();
   $('loginName').addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
-  $('payPin').addEventListener('keydown', e => { if (e.key === 'Enter') unlockPay('pay'); });
-  $('histPin').addEventListener('keydown', e => { if (e.key === 'Enter') unlockPay('hist'); });
+  $('payPin').addEventListener('keydown', e => { if (e.key === 'Enter') unlockPay(); });
 </script>
 </body>
 </html>
