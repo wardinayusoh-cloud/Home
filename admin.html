@@ -48,6 +48,13 @@
     .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
     .hidden{display:none!important}
     .qr-prev{max-width:220px;border:1px solid #e2e8f0;border-radius:12px;margin-bottom:8px}
+    .modal-bg{position:fixed;inset:0;background:rgba(15,43,70,.55);display:flex;justify-content:center;align-items:flex-start;padding:30px 16px;overflow-y:auto;z-index:50}
+    .modal-box{background:#fff;border-radius:20px;max-width:780px;width:100%;padding:22px;margin:auto}
+    .modal-box h4{color:var(--primary-dark);margin:20px 0 8px;font-size:15px}
+    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+    .grid2 label{font-size:13px;font-weight:600;color:var(--primary-dark);display:block}
+    .grid2 input,.grid2 select{width:100%;margin-top:4px}
+    @media(max-width:560px){.grid2{grid-template-columns:1fr}}
     .thumb{width:56px;height:56px;object-fit:cover;border-radius:8px;border:1px solid #e2e8f0}
     .tag.prog{background:#dbeafe;color:#1d4ed8}.tag.gray{background:#e2e8f0;color:#475569}
     .floor{border:1.5px solid #bfdbfe;border-radius:16px;padding:16px;margin-bottom:16px;background:#f8fbff}
@@ -193,6 +200,47 @@
   </div>
 </div>
 
+<div id="stuModal" class="modal-bg hidden">
+  <div class="modal-box">
+    <div class="row" style="justify-content:space-between;margin-bottom:0">
+      <h3 id="smTitle" style="margin:0;color:var(--primary-dark)"></h3>
+      <button class="btn sm gray" onclick="closeStudent()">✕ ปิด</button>
+    </div>
+
+    <h4>ข้อมูลนักเรียน</h4>
+    <div class="grid2">
+      <label>ชื่อ - นามสกุล<input type="text" id="smName"></label>
+      <label>ชั้น<select id="smGrade"><option>ม.4</option><option>ม.5</option><option>ม.6</option></select></label>
+      <label>รหัส 4 หลัก<input type="text" id="smPin" maxlength="4"></label>
+      <label>เริ่มนับค่าบ้านตั้งแต่เดือน<input type="month" id="smStart"></label>
+      <label>ค่าบ้านต่อเดือนของคนนี้ (เว้นว่าง = ใช้ค่ากลาง)<input type="number" id="smFee" min="0"></label>
+      <label>สถานะ<select id="smActive"><option value="1">ใช้งาน</option><option value="0">ปิดใช้งาน</option></select></label>
+      <label>ห้องน้ำ<select id="smBath"><option value="">ไม่ระบุ</option><option value="บน">ชั้นบน</option><option value="ล่าง">ชั้นล่าง</option></select></label>
+      <label>ลำดับเวรห้องน้ำ<input type="number" id="smOrder" min="1"></label>
+    </div>
+    <button class="btn" onclick="saveStudent()">บันทึกข้อมูล</button>
+
+    <h4>ยอดรายเดือน / ยอดค้าง</h4>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:10px">เพิ่มยอดค้างของเดือนอื่น (เช่น เดือนที่ผ่านมา) หรือแก้ยอดเดือนใดก็ได้ · ใส่ 0 = ยกเว้นเดือนนั้น · นักเรียนแก้เองไม่ได้</p>
+    <div class="row">
+      <input type="month" id="smChMonth">
+      <input type="number" id="smChAmount" min="0" placeholder="ยอดที่ต้องจ่าย (บาท)" style="width:170px">
+      <input type="text" id="smChNote" placeholder="หมายเหตุ (ถ้ามี)" style="flex:1;min-width:140px">
+      <button class="btn" onclick="addCharge()">เพิ่ม / แก้ยอดเดือนนี้</button>
+    </div>
+    <div class="scroll"><table>
+      <thead><tr><th>เดือน</th><th>ต้องจ่าย</th><th>จ่ายแล้ว</th><th>คงเหลือ</th><th></th></tr></thead>
+      <tbody id="smLedger"></tbody>
+    </table></div>
+
+    <h4>รายการที่ชำระแล้ว</h4>
+    <div class="scroll"><table>
+      <thead><tr><th>วันที่</th><th>เดือน</th><th>ยอด</th><th>วิธี / ผู้รับ</th><th>สลิป</th><th></th></tr></thead>
+      <tbody id="smPays"></tbody>
+    </table></div>
+  </div>
+</div>
+
 <script>
   // ====== ตั้งค่า Supabase (ใช้ค่าเดียวกับ index.html) ======
  const SUPABASE_URL = 'https://dlnweagzhrwcbsnahuqk.supabase.co';
@@ -232,30 +280,29 @@
   }
 
   async function loadAll() {
-    const [s, p, st, n, g] = await Promise.all([
+    const [s, p, st, n, g, c] = await Promise.all([
       sb.from('students').select('*').order('full_name'),
       sb.from('payments').select('*').order('created_at', { ascending: false }),
       sb.from('settings').select('monthly_fee, cleaning_anchor, qr_path').eq('id', 1).single(),
       sb.from('notices').select('student_id, created_at, read_at').order('created_at', { ascending: false }),
-      sb.from('guest_payments').select('*').order('created_at', { ascending: false })
+      sb.from('guest_payments').select('*').order('created_at', { ascending: false }),
+      sb.from('student_charges').select('*')
     ]);
     students = s.data || []; payments = p.data || []; notices = n.data || [];
     fee = st.data?.monthly_fee ?? 800; $('feeInput').value = fee;
     $('anchorInput').value = st.data?.cleaning_anchor ?? '';
-    qrPath = st.data?.qr_path || null; guests = g.data || [];
+    qrPath = st.data?.qr_path || null; guests = g.data || []; charges = c.data || [];
     renderQrAdmin(); renderGuests();
     computeRows(); renderAll_();
+    if (curStu) renderStuLedger();
     loadBoard();
   }
 
   function computeRows() {
     rows = students.map(s => {
       const f = s.monthly_fee ?? fee;
-      const mine = payments.filter(p => p.student_id === s.id);
-      const sums = {};
-      mine.filter(p => p.status !== 'rejected').forEach(p => sums[p.month_key] = (sums[p.month_key] || 0) + p.amount);
-      const owed = s.active ? monthsRange(s.start_month.slice(0, 7), curKey())
-        .map(m => ({ month: m, remaining: f - (sums[m] || 0) })).filter(x => x.remaining > 0) : [];
+      const owed = s.active ? ledgerFor(s).filter(r => r.month <= curKey() && r.remaining > 0)
+        .map(r => ({ month: r.month, remaining: r.remaining })) : [];
       const lastNotice = notices.find(n => n.student_id === s.id);
       return { s, f, owed, total: owed.reduce((a, b) => a + b.remaining, 0), lastNotice };
     });
@@ -286,7 +333,7 @@
       <td>${r.owed.length ? `<span class="tag bad">ค้าง ${r.owed.length} เดือน</span>` : '<span class="tag ok">ครบ</span>'}</td>
       <td>${r.owed.map(x => `<span class="chip">${thMonth(x.month)}</span>`).join('')}</td>
       <td>${r.total ? r.total.toLocaleString() : '-'}</td>
-      <td>${r.owed.length ? `<button class="btn sm red" onclick="remind('${r.s.id}')">แจ้งเตือน</button>` : ''}</td></tr>`).join('')
+      <td style="white-space:nowrap">${r.owed.length ? `<button class="btn sm red" onclick="remind('${r.s.id}')">แจ้งเตือน</button> ` : ''}<button class="btn sm" onclick="openStudent('${r.s.id}')">ประวัติ / แก้ไข</button></td></tr>`).join('')
       : '<tr><td colspan="6" class="empty">ไม่พบข้อมูล</td></tr>';
   }
 
@@ -325,7 +372,7 @@
         <input type="number" min="1" style="width:64px" placeholder="ลำดับ" value="${s.bathroom_order ?? ''}" onchange="setBathOrder('${s.id}', this.value)">
       </td>
       <td>${s.active ? '<span class="tag ok">ใช้งาน</span>' : '<span class="tag bad">ปิด</span>'}</td>
-      <td style="white-space:nowrap"><button class="btn sm gray" onclick="toggleActive('${s.id}',${!s.active})">${s.active ? 'ปิดใช้งาน' : 'เปิดใช้งาน'}</button>
+      <td style="white-space:nowrap"><button class="btn sm" onclick="openStudent('${s.id}')">แก้ไข</button> <button class="btn sm gray" onclick="toggleActive('${s.id}',${!s.active})">${s.active ? 'ปิดใช้งาน' : 'เปิดใช้งาน'}</button>
         <button class="btn sm red" onclick="deleteStudent('${s.id}')">ลบ</button></td></tr>`).join('');
   }
 
@@ -533,6 +580,96 @@
     const p = payments.find(x => x.id === id); if (!p) return;
     if (!confirm(`ลบรายการชำระของ ${nameOf(p.student_id)} (${thMonth(p.month_key)} · ${p.amount.toLocaleString()} บาท)?\nยอดค้างของคนนี้จะคำนวณใหม่`)) return;
     const { error } = await sb.from('payments').delete().eq('id', id);
+    if (error) return alert(error.message);
+    await loadAll();
+  }
+
+  // ================= แก้ไขรายคน + ยอดรายเดือน =================
+  let charges = [], curStu = null;
+
+  // ยอดรายเดือนของนักเรียน: ใช้ยอดที่แอดมินกำหนด ถ้าไม่มีใช้ค่าบ้านปกติ (เฉพาะเดือนตั้งแต่เริ่มนับถึงเดือนนี้)
+  function ledgerFor(s) {
+    const f = s.monthly_fee ?? fee, start = s.start_month.slice(0, 7), cur = curKey();
+    const paid = {};
+    payments.filter(p => p.student_id === s.id && p.status !== 'rejected')
+      .forEach(p => paid[p.month_key] = (paid[p.month_key] || 0) + p.amount);
+    const ch = {};
+    charges.filter(c => c.student_id === s.id).forEach(c => ch[c.month_key] = c);
+    const set = new Set(monthsRange(start, cur));
+    Object.keys(ch).forEach(m => set.add(m)); Object.keys(paid).forEach(m => set.add(m));
+    return [...set].sort().map(m => {
+      const due = ch[m] ? ch[m].amount : (m >= start && m <= cur ? f : 0);
+      return { month: m, due, paid: paid[m] || 0, remaining: due - (paid[m] || 0), custom: !!ch[m], note: ch[m]?.note || '' };
+    });
+  }
+
+  function openStudent(id) {
+    const s = students.find(x => x.id === id); if (!s) return;
+    curStu = id;
+    $('smName').value = s.full_name; $('smGrade').value = s.grade; $('smPin').value = s.pin;
+    $('smStart').value = s.start_month.slice(0, 7); $('smFee').value = s.monthly_fee ?? '';
+    $('smActive').value = s.active ? '1' : '0'; $('smBath').value = s.bathroom || '';
+    $('smOrder').value = s.bathroom_order ?? '';
+    $('smChMonth').value = ''; $('smChAmount').value = ''; $('smChNote').value = '';
+    renderStuLedger();
+    $('stuModal').classList.remove('hidden');
+  }
+  function closeStudent() { curStu = null; $('stuModal').classList.add('hidden'); }
+
+  function renderStuLedger() {
+    const s = students.find(x => x.id === curStu);
+    if (!s) { closeStudent(); return; }
+    const cur = curKey();
+    $('smTitle').textContent = s.full_name;
+    const led = ledgerFor(s).slice().reverse();
+    $('smLedger').innerHTML = led.length ? led.map(r => `<tr>
+      <td>${thMonth(r.month)}${r.custom ? ' <span class="tag prog">กำหนดเอง</span>' : ''}${r.note ? `<br><small style="color:var(--text-muted)">${esc(r.note)}</small>` : ''}</td>
+      <td>${r.due.toLocaleString()}</td><td>${r.paid.toLocaleString()}</td>
+      <td>${r.remaining > 0 && r.month <= cur ? `<span class="tag bad">${r.remaining.toLocaleString()}</span>` : (r.remaining < 0 ? `<span class="tag wait">จ่ายเกิน ${(-r.remaining).toLocaleString()}</span>` : '<span class="tag ok">ครบ</span>')}</td>
+      <td style="white-space:nowrap"><button class="btn sm" onclick="editCharge('${r.month}',${r.due},'${esc(r.note).replace(/'/g, '&#39;')}')">แก้ยอด</button>
+        ${r.custom ? `<button class="btn sm gray" onclick="resetCharge('${r.month}')">คืนค่าปกติ</button>` : ''}</td></tr>`).join('')
+      : '<tr><td colspan="5" class="empty">ยังไม่มีข้อมูล</td></tr>';
+    const mine = payments.filter(p => p.student_id === s.id);
+    $('smPays').innerHTML = mine.length ? mine.map(p => `<tr>
+      <td>${thDate(p.created_at)}</td><td>${thMonth(p.month_key)}</td><td>${p.amount.toLocaleString()}</td>
+      <td>${esc(p.method)}<br><small>${esc(p.receiver || '')}</small>${p.note ? `<br><small>${esc(p.note)}</small>` : ''}</td>
+      <td>${p.slip_path ? `<a class="slip" onclick="openSlip('${esc(p.slip_path)}')">ดูสลิป</a>` : '-'}</td>
+      <td><button class="btn sm gray" onclick="deletePayment('${p.id}')">ลบ</button></td></tr>`).join('')
+      : '<tr><td colspan="6" class="empty">ยังไม่มีรายการชำระ</td></tr>';
+  }
+
+  async function saveStudent() {
+    const s = students.find(x => x.id === curStu); if (!s) return;
+    const full_name = $('smName').value.trim(), pin = $('smPin').value.trim(), start = $('smStart').value;
+    if (!full_name || !/^\d{4}$/.test(pin) || !start) return alert('กรอกชื่อ, รหัส 4 หลัก (ตัวเลข) และเดือนเริ่มนับ');
+    const feeV = $('smFee').value.trim(), ordV = $('smOrder').value.trim();
+    const { error } = await sb.from('students').update({
+      full_name, grade: $('smGrade').value, pin, start_month: start + '-01',
+      monthly_fee: feeV === '' ? null : parseInt(feeV, 10),
+      active: $('smActive').value === '1', bathroom: $('smBath').value || null,
+      bathroom_order: ordV === '' ? null : parseInt(ordV, 10)
+    }).eq('id', curStu);
+    if (error) return alert(error.message.includes('duplicate') ? 'มีชื่อนี้อยู่แล้ว' : error.message);
+    alert('บันทึกข้อมูลแล้ว'); await loadAll();
+  }
+
+  function editCharge(month, due, note) {
+    $('smChMonth').value = month; $('smChAmount').value = due; $('smChNote').value = note;
+    $('smChAmount').focus();
+  }
+  async function addCharge() {
+    const month = $('smChMonth').value, amount = parseInt($('smChAmount').value, 10);
+    if (!month || isNaN(amount) || amount < 0) return alert('เลือกเดือนและใส่ยอด (ตั้งแต่ 0 ขึ้นไป)');
+    const { error } = await sb.from('student_charges').upsert(
+      { student_id: curStu, month_key: month, amount, note: $('smChNote').value.trim() || null },
+      { onConflict: 'student_id,month_key' });
+    if (error) return alert('บันทึกไม่สำเร็จ: ' + error.message + '\n(รัน schema4.sql แล้วหรือยัง?)');
+    $('smChMonth').value = ''; $('smChAmount').value = ''; $('smChNote').value = '';
+    await loadAll();
+  }
+  async function resetCharge(month) {
+    if (!confirm(`คืนยอดของ ${thMonth(month)} เป็นค่าปกติ?`)) return;
+    const { error } = await sb.from('student_charges').delete().eq('student_id', curStu).eq('month_key', month);
     if (error) return alert(error.message);
     await loadAll();
   }
