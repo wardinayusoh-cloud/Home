@@ -33,7 +33,10 @@
     input[type=file]{width:100%;padding:10px;border:1.5px dashed #cbd5e1;border-radius:12px;background:#f8fafc;cursor:pointer}
     .btn-primary{width:100%;background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:#fff;border:none;padding:14px;border-radius:12px;font-size:16px;font-weight:600;cursor:pointer;margin-top:10px;box-shadow:0 4px 12px rgba(30,64,175,.2)}
     .btn-primary:disabled{background:#cbd5e1;cursor:not-allowed;box-shadow:none}
+    .btn-outline{width:100%;background:#fff;color:var(--primary);border:1.5px solid var(--primary);padding:13px;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;margin-top:10px}
     .btn-link{background:none;border:none;color:var(--primary);cursor:pointer;font-size:14px;margin-top:14px;text-decoration:underline}
+    .divider{display:flex;align-items:center;gap:10px;color:var(--text-muted);font-size:13px;margin:22px 0 4px}
+    .divider:before,.divider:after{content:"";flex:1;height:1px;background:#e2e8f0}
     .hidden{display:none!important}
     .status{border-radius:16px;padding:18px;margin-bottom:20px}
     .status.bad{background:#fef2f2;border:1.5px solid #fecaca}
@@ -80,21 +83,66 @@
     <p>หอพักนักเรียน ม.4 - ม.6</p>
   </div>
 
-  <!-- หน้าแรก: กรอกชื่อ -->
+  <!-- หน้าแรก: กรอกชื่ออย่างเดียว (ไม่ใช้รหัส) -->
   <div class="body" id="loginView">
     <div class="form-group">
       <label for="loginName">ชื่อ - นามสกุล</label>
       <input type="text" id="loginName" placeholder="กรอกชื่อและนามสกุลให้ตรงกับที่ลงทะเบียน" autocomplete="off">
     </div>
-    <div class="form-group">
-      <label for="loginPin">รหัส 4 หลัก</label>
-      <input type="password" id="loginPin" inputmode="numeric" maxlength="4" placeholder="รหัสที่ได้รับจากพี่ดูแล">
-    </div>
-    <button class="btn-primary" id="loginBtn" onclick="login()">เข้าสู่ระบบ / ตรวจสอบยอดค้าง</button>
+    <button class="btn-primary" id="loginBtn" onclick="login()">เข้าสู่ระบบ</button>
     <div class="err" id="loginErr"></div>
+
+    <div class="divider"><span>หรือ</span></div>
+    <button type="button" class="btn-outline" onclick="showGuest()">🧾 ไม่ใช่ผู้เช่ารายเดือน · จ่ายเงิน (ไม่ต้องใช้รหัส)</button>
   </div>
 
-  <!-- หน้าที่สอง: สถานะ + ฟอร์มชำระเงิน -->
+  <!-- จ่ายเงินสำหรับผู้ที่ไม่ใช่ผู้เช่ารายเดือน (ไม่ใช้รหัส) -->
+  <div class="body hidden" id="guestView">
+    <div class="hello">
+      <strong>🧾 ชำระเงิน (ไม่ใช่ผู้เช่ารายเดือน)</strong>
+      <button type="button" class="btn-link" style="margin:0" onclick="hideGuest()">← กลับ</button>
+    </div>
+    <form id="guestForm" onsubmit="submitGuest(event)">
+      <div class="form-group">
+        <label for="gName">ชื่อ - นามสกุล</label>
+        <input type="text" id="gName" maxlength="120" placeholder="ชื่อผู้ชำระเงิน" required>
+      </div>
+      <div class="form-group">
+        <label for="gPurpose">ชำระค่าอะไร</label>
+        <input type="text" id="gPurpose" maxlength="150" placeholder="เช่น ค่าที่พักรายวัน, ค่าซักผ้า" required>
+      </div>
+      <div class="form-group">
+        <label for="gReceiver">ชำระเงินที่ใคร</label>
+        <select id="gReceiver" required><option value="" disabled selected>เลือกชื่อ</option></select>
+      </div>
+      <div class="form-group">
+        <label>รูปแบบการชำระเงิน</label>
+        <div class="radio-group">
+          <label><input type="radio" name="gMethod" value="เงินสด" checked onclick="toggleBox('g',false)"><div class="radio-box">เงินสด</div></label>
+          <label><input type="radio" name="gMethod" value="โอนเงิน" onclick="toggleBox('g',true)"><div class="radio-box">โอนเงิน</div></label>
+        </div>
+        <div id="gQrBox" class="qr-box">
+          <div class="qr-slot"></div>
+          <div class="acc"><strong style="color:var(--primary)">ธนาคารไทยพาณิชย์ (SCB)</strong><br><small>ชื่อบัญชี: วัรดีนาร์ ยูโซะ</small></div>
+        </div>
+        <div id="gSlipBox" class="slip-box">
+          <label for="gSlipFile">แนบสลิปการโอนเงิน</label>
+          <input type="file" id="gSlipFile" accept="image/*">
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="gAmount">จำนวนเงินที่ชำระ (บาท)</label>
+        <input type="number" id="gAmount" min="1" max="100000" required>
+      </div>
+      <div class="form-group">
+        <label for="gNote">เพิ่มเติม</label>
+        <textarea id="gNote" rows="2" maxlength="500" placeholder="เพิ่มเติม (ถ้ามี)"></textarea>
+      </div>
+      <button type="submit" class="btn-primary" id="guestBtn">บันทึกการชำระเงิน</button>
+    </form>
+  </div>
+
+  <!-- หลังเข้าสู่ระบบ -->
   <div class="body hidden" id="mainView">
     <div class="hello">
       <div><strong id="helloName"></strong><br><small id="helloGrade" style="color:var(--text-muted)"></small></div>
@@ -103,69 +151,18 @@
 
     <div id="dutyBanner"></div>
     <div class="tabs">
-      <button type="button" class="tabbtn active" data-t="pay" onclick="showTab('pay')">💰 ค่าบ้าน</button>
+      <button type="button" class="tabbtn active" data-t="clean" onclick="showTab('clean')">🚿 ห้องน้ำ</button>
       <button type="button" class="tabbtn" data-t="repair" onclick="showTab('repair')">🔧 แจ้งซ่อม</button>
-      <button type="button" class="tabbtn" data-t="clean" onclick="showTab('clean')">🚿 ห้องน้ำ</button>
+      <button type="button" class="tabbtn" data-t="pay" onclick="showTab('pay')">💰 ค่าบ้าน</button>
     </div>
 
-    <div id="tab-pay">
-    <div id="noticeList"></div>
-    <div id="statusBox" class="status"></div>
-
-    <form id="payForm" onsubmit="submitPayment(event)">
-      <div class="form-group">
-        <label for="month">ชำระค่าบ้านประจำเดือน</label>
-        <select id="month" required onchange="fillAmount()"></select>
-      </div>
-
-      <div class="form-group">
-        <label for="receiver">ชำระเงินที่ใคร</label>
-        <select id="receiver" required><option value="" disabled selected>เลือกชื่อ</option></select>
-      </div>
-
-      <div class="form-group">
-        <label>รูปแบบการชำระเงิน</label>
-        <div class="radio-group">
-          <label><input type="radio" name="payMethod" value="เงินสด" checked onclick="toggleTransfer(false)"><div class="radio-box">เงินสด</div></label>
-          <label><input type="radio" name="payMethod" value="โอนเงิน" onclick="toggleTransfer(true)"><div class="radio-box">โอนเงิน</div></label>
-        </div>
-
-        <div id="qrBox" class="qr-box">
-          <!-- วางไฟล์ QR ของคุณชื่อ qr.png ไว้โฟลเดอร์เดียวกับไฟล์นี้ -->
-          <img id="qrImg" src="qr.png" alt="QR รับเงิน" onerror="this.outerHTML='<p style=&quot;color:#b91c1c;font-size:14px&quot;>ยังไม่มีไฟล์ qr.png</p>'">
-          <div class="acc">
-            <strong style="color:var(--primary)">ธนาคารไทยพาณิชย์ (SCB)</strong><br>
-            <small>ชื่อบัญชี: วัรดีนาร์ ยูโซะ</small>
-          </div>
-          <a class="btn-small" style="display:inline-block;text-decoration:none" href="qr.png" download="qr-payment.png">บันทึกรูป QR</a>
-        </div>
-
-        <div id="slipBox" class="slip-box">
-          <label for="slipFile">แนบสลิปการโอนเงิน</label>
-          <input type="file" id="slipFile" accept="image/*">
-        </div>
-      </div>
-
-      <div class="form-group">
-        <label for="amount">จำนวนเงินที่ชำระ (บาท)</label>
-        <input type="number" id="amount" min="1" required>
-      </div>
-
-      <div class="form-group">
-        <label for="note">เพิ่มเติม</label>
-        <textarea id="note" rows="2" placeholder="เพิ่มเติม (ถ้ามี) เช่น ค้างคืน"></textarea>
-      </div>
-
-      <button type="submit" class="btn-primary" id="submitBtn">บันทึกการชำระเงิน</button>
-    </form>
-
-    <div class="history">
-      <h4>ประวัติการชำระของฉัน</h4>
-      <div id="historyList"></div>
+    <!-- เวรทำความสะอาดห้องน้ำ (ทุกคนเห็น ไม่ใช้รหัส) -->
+    <div id="tab-clean">
+      <p class="hint">เวรหมุนเวียนทุก 2 สัปดาห์ ครบทุกคนแล้ววนใหม่ · ทุกคนในหอเห็นตารางและรูปได้</p>
+      <div id="cleanBoard"><p class="hint">กำลังโหลด...</p></div>
     </div>
-    </div><!-- /tab-pay (เห็นเฉพาะตัวเอง) -->
 
-    <!-- แจ้งซ่อม (ทุกคนเห็น) -->
+    <!-- แจ้งซ่อม (ทุกคนเห็น ไม่ใช้รหัส) -->
     <div id="tab-repair" class="hidden">
       <p class="hint">รายการแจ้งซ่อมนี้ทุกคนในหอมองเห็นได้</p>
       <form id="repairForm" onsubmit="submitRepair(event)">
@@ -193,10 +190,73 @@
       <div class="history"><h4>รายการแจ้งซ่อมทั้งหมด</h4><div id="repairList"></div></div>
     </div>
 
-    <!-- เวรทำความสะอาดห้องน้ำ (ทุกคนเห็น) -->
-    <div id="tab-clean" class="hidden">
-      <p class="hint">เวรหมุนเวียนทุก 2 สัปดาห์ ครบทุกคนแล้ววนใหม่ · ทุกคนในหอเห็นตารางและรูปได้</p>
-      <div id="cleanBoard"><p class="hint">กำลังโหลด...</p></div>
+    <!-- ค่าบ้าน (ต้องใส่รหัส เห็นเฉพาะตัวเอง) -->
+    <div id="tab-pay" class="hidden">
+      <div id="payLock">
+        <p class="hint">🔒 ใส่รหัส 4 หลักของคุณเพื่อดูยอดค้างและชำระค่าบ้าน</p>
+        <div class="form-group">
+          <label for="payPin">รหัส 4 หลัก</label>
+          <input type="password" id="payPin" inputmode="numeric" maxlength="4" placeholder="รหัสที่ได้รับจากพี่ดูแล">
+        </div>
+        <button type="button" class="btn-primary" id="unlockBtn" onclick="unlockPay()">ปลดล็อก</button>
+        <div class="err" id="payErr"></div>
+      </div>
+
+      <div id="payContent" class="hidden">
+        <div id="noticeList"></div>
+        <div id="statusBox" class="status"></div>
+
+        <form id="payForm" onsubmit="submitPayment(event)">
+          <div class="form-group">
+            <label for="month">ชำระค่าบ้านประจำเดือน</label>
+            <select id="month" required onchange="fillAmount()"></select>
+          </div>
+
+          <div class="form-group">
+            <label for="receiver">ชำระเงินที่ใคร</label>
+            <select id="receiver" required><option value="" disabled selected>เลือกชื่อ</option></select>
+          </div>
+
+          <div class="form-group">
+            <label>รูปแบบการชำระเงิน</label>
+            <div class="radio-group">
+              <label><input type="radio" name="payMethod" value="เงินสด" checked onclick="toggleBox('p',false)"><div class="radio-box">เงินสด</div></label>
+              <label><input type="radio" name="payMethod" value="โอนเงิน" onclick="toggleBox('p',true)"><div class="radio-box">โอนเงิน</div></label>
+            </div>
+
+            <div id="pQrBox" class="qr-box">
+              <div class="qr-slot"></div>
+              <div class="acc">
+                <strong style="color:var(--primary)">ธนาคารไทยพาณิชย์ (SCB)</strong><br>
+                <small>ชื่อบัญชี: วัรดีนาร์ ยูโซะ</small>
+              </div>
+            </div>
+
+            <div id="pSlipBox" class="slip-box">
+              <label for="pSlipFile">แนบสลิปการโอนเงิน</label>
+              <input type="file" id="pSlipFile" accept="image/*">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="amount">จำนวนเงินที่ชำระ (บาท)</label>
+            <input type="number" id="amount" min="1" required>
+          </div>
+
+          <div class="form-group">
+            <label for="note">เพิ่มเติม</label>
+            <textarea id="note" rows="2" placeholder="เพิ่มเติม (ถ้ามี) เช่น ค้างคืน"></textarea>
+          </div>
+
+          <button type="submit" class="btn-primary" id="submitBtn">บันทึกการชำระเงิน</button>
+        </form>
+
+        <div class="history">
+          <h4>ประวัติการชำระของฉัน</h4>
+          <div id="historyList"></div>
+        </div>
+        <button type="button" class="btn-link" onclick="lockPay()">🔒 ล็อกหน้านี้</button>
+      </div>
     </div>
   </div>
 </div>
@@ -214,13 +274,24 @@
   // ====== ตั้งค่า Supabase (Project Settings > API) ======
   const SUPABASE_URL = 'https://dlnweagzhrwcbsnahuqk.supabase.co';
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRsbndlYWd6aHJ3Y2JzbmFodXFrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTUwMDQ1NDQsImV4cCI6MjExMDU4MDU0NH0.SLxKmlQlMhsnMgK5JCQswfdUp8NcjD4PyTXNjtjgJSw';
+  // =======================================================
   const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  let me = null, creds = null;
+  let creds = null;   // { name } เข้าด้วยชื่ออย่างเดียว
+  let payPin = null;  // รหัส ใช้เฉพาะหน้า "ค่าบ้าน" เก็บในหน่วยความจำเท่านั้น
+  let me = null;      // ข้อมูลค่าบ้านของตัวเอง (หลังใส่รหัส)
+  let board = null;   // ข้อมูลห้องน้ำ + แจ้งซ่อม
+  let qrUrl = null;
 
   const $ = id => document.getElementById(id);
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const thMonth = k => new Date(k + '-01T00:00:00+07:00').toLocaleDateString('th-TH', {month:'long', year:'numeric'});
+  const thShort = d => new Date(d + 'T00:00:00+07:00').toLocaleDateString('th-TH', { day: 'numeric', month: 'short' });
+  const thDT = d => new Date(d).toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short', timeZone: 'Asia/Bangkok' });
   const curKey = () => new Date().toLocaleString('sv-SE', {timeZone:'Asia/Bangkok'}).slice(0, 7);
+  const FL = { 'บน': 'ชั้นบน', 'ล่าง': 'ชั้นล่าง' };
+  const photoUrl = p => sb.storage.from('dorm-photos').getPublicUrl(p).data.publicUrl;
+  const thumb = p => p ? `<a href="${esc(photoUrl(p))}" target="_blank" rel="noopener"><img class="thumb" src="${esc(photoUrl(p))}" loading="lazy" alt="รูป"></a>` : '';
+
   function monthsRange(a, b) {
     const out = []; let [y, m] = a.split('-').map(Number); const [ey, em] = b.split('-').map(Number);
     while (y < ey || (y === ey && m <= em)) { out.push(`${y}-${String(m).padStart(2,'0')}`); m++; if (m > 12) { m = 1; y++; } }
@@ -234,49 +305,163 @@
       .filter(x => x.remaining > 0);
   }
 
+  // ---------- รูปภาพ ----------
+  function compressImage(file, max) {
+    return new Promise((resolve, reject) => {
+      const img = new Image(), url = URL.createObjectURL(file);
+      img.onload = () => {
+        const r = Math.min(1, max / Math.max(img.width, img.height));
+        const c = document.createElement('canvas');
+        c.width = Math.round(img.width * r); c.height = Math.round(img.height * r);
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(url);
+        c.toBlob(b => b ? resolve(b) : reject(new Error('แปลงรูปไม่สำเร็จ')), 'image/jpeg', 0.85);
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('เปิดไฟล์รูปไม่ได้ (ลองถ่ายใหม่หรือเลือกไฟล์ JPG/PNG)')); };
+      img.src = url;
+    });
+  }
+  async function uploadImg(bucket, file, folder, max = 1280) {
+    let blob = file, type = file.type || 'image/jpeg';
+    let ext = (file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
+    try { blob = await compressImage(file, max); type = 'image/jpeg'; ext = 'jpg'; }
+    catch (e) { if (file.size > 5 * 1024 * 1024) throw e; }
+    const path = `${folder}/${new Date().toISOString().slice(0, 7)}/${crypto.randomUUID()}.${ext}`;
+    const { error } = await sb.storage.from(bucket).upload(path, blob, { contentType: type });
+    if (error) throw new Error('อัปโหลดรูปไม่สำเร็จ: ' + error.message);
+    return path;
+  }
+
+  // ---------- QR + ผู้รับเงิน ----------
+  async function loadConfig() {
+    try {
+      const { data } = await sb.rpc('get_public_config');
+      if (data && data.qr_path) qrUrl = sb.storage.from('qr').getPublicUrl(data.qr_path).data.publicUrl;
+    } catch (e) {}
+    document.querySelectorAll('.qr-slot').forEach(el => {
+      el.innerHTML = qrUrl
+        ? `<img src="${esc(qrUrl)}" alt="QR รับเงิน"><br><button type="button" class="btn-small" onclick="saveQr()">บันทึกรูป QR</button>`
+        : '<p style="color:#b91c1c;font-size:14px">ผู้ดูแลยังไม่ได้อัปโหลด QR กรุณาติดต่อผู้ดูแล</p>';
+    });
+  }
+  async function saveQr() {
+    try {
+      const b = await (await fetch(qrUrl)).blob();
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(b); a.download = 'qr-payment.png'; a.click();
+    } catch (e) { window.open(qrUrl, '_blank'); }
+  }
+  async function loadReceivers() {
+    const { data } = await sb.from('receivers').select('name').eq('active', true).order('id');
+    const html = '<option value="" disabled selected>เลือกชื่อ</option>' +
+      (data || []).map(r => `<option value="${esc(r.name)}">${esc(r.name)}</option>`).join('');
+    $('receiver').innerHTML = html; $('gReceiver').innerHTML = html;
+  }
+  function toggleBox(p, show) {
+    $(p + 'QrBox').style.display = show ? 'block' : 'none';
+    $(p + 'SlipBox').style.display = show ? 'block' : 'none';
+    $(p + 'SlipFile').required = show;
+  }
+
+  function showSuccess(msg) { $('successMsg').textContent = msg; $('successModal').style.display = 'flex'; }
+  function closeModal() { $('successModal').style.display = 'none'; }
+
+  // ---------- เข้าสู่ระบบด้วยชื่อ (ไม่ใช้รหัส) ----------
   async function login() {
-    const name = $('loginName').value.trim(), pin = $('loginPin').value.trim();
+    const name = $('loginName').value.trim();
     $('loginErr').textContent = '';
-    if (!name || !pin) { $('loginErr').textContent = 'กรุณากรอกชื่อและรหัส'; return; }
+    if (!name) { $('loginErr').textContent = 'กรุณากรอกชื่อ'; return; }
     $('loginBtn').disabled = true; $('loginBtn').textContent = 'กำลังตรวจสอบ...';
-    const { data, error } = await sb.rpc('get_student_status', { p_name: name, p_pin: pin });
-    $('loginBtn').disabled = false; $('loginBtn').textContent = 'เข้าสู่ระบบ / ตรวจสอบยอดค้าง';
+    const { data, error } = await sb.rpc('board_by_name', { p_name: name });
+    $('loginBtn').disabled = false; $('loginBtn').textContent = 'เข้าสู่ระบบ';
     if (error) { $('loginErr').textContent = 'เชื่อมต่อระบบไม่ได้: ' + error.message; return; }
-    if (!data) { $('loginErr').textContent = 'ไม่พบชื่อนี้ หรือรหัสไม่ถูกต้อง'; return; }
-    creds = { name, pin };
-    me = data;
-    sessionStorage.setItem('creds', JSON.stringify(creds));
-    await loadReceivers();
-    render();
+    if (!data) { $('loginErr').textContent = 'ไม่พบชื่อนี้ในระบบ (ตรวจตัวสะกดให้ตรงกับที่ลงทะเบียน)'; return; }
+    creds = { name };
+    sessionStorage.setItem('name', name);
+    board = data;
+    enterMain();
+  }
+
+  function enterMain() {
+    $('loginView').classList.add('hidden'); $('guestView').classList.add('hidden'); $('mainView').classList.remove('hidden');
+    $('helloName').textContent = board.me.name; $('helloGrade').textContent = board.me.grade || '';
+    lockPay(); renderBoard(); showTab('clean', true);
   }
 
   function logout() {
-    sessionStorage.removeItem('creds'); me = creds = null;
+    sessionStorage.removeItem('name'); creds = me = board = payPin = null;
     $('mainView').classList.add('hidden'); $('loginView').classList.remove('hidden');
-    $('loginPin').value = '';
+    $('loginName').value = '';
+  }
+
+  function showTab(t, skipLoad) {
+    document.querySelectorAll('.tabbtn').forEach(b => b.classList.toggle('active', b.dataset.t === t));
+    ['clean', 'repair', 'pay'].forEach(x => $('tab-' + x).classList.toggle('hidden', x !== t));
+    if (!skipLoad && t !== 'pay') loadBoard();
+  }
+
+  // ---------- จ่ายเงินแบบไม่ต้องใช้รหัส (ไม่ใช่ผู้เช่ารายเดือน) ----------
+  function showGuest() { $('loginView').classList.add('hidden'); $('guestView').classList.remove('hidden'); }
+  function hideGuest() { $('guestView').classList.add('hidden'); $('loginView').classList.remove('hidden'); }
+
+  async function submitGuest(e) {
+    e.preventDefault();
+    const btn = $('guestBtn'); btn.disabled = true; btn.textContent = 'กำลังบันทึก...';
+    try {
+      const method = document.querySelector('input[name=gMethod]:checked').value;
+      let slip = '';
+      if (method === 'โอนเงิน') {
+        const f = $('gSlipFile').files[0];
+        if (!f) throw new Error('กรุณาแนบสลิป');
+        slip = await uploadImg('slips', f, 'guest', 1600);
+      }
+      const { data, error } = await sb.rpc('submit_guest_payment', {
+        p_name: $('gName').value.trim(), p_purpose: $('gPurpose').value.trim(),
+        p_amount: parseInt($('gAmount').value, 10), p_method: method,
+        p_receiver: $('gReceiver').value, p_slip_path: slip, p_note: $('gNote').value.trim()
+      });
+      if (error) throw new Error(error.message);
+      if (!data.ok) throw new Error(data.message);
+      $('guestForm').reset(); toggleBox('g', false);
+      showSuccess('ส่งข้อมูลการชำระเงินแล้ว รอผู้ดูแลตรวจสอบ ขอบคุณครับ/ค่ะ');
+    } catch (err) {
+      alert('เกิดข้อผิดพลาด: ' + err.message);
+    } finally {
+      btn.disabled = false; btn.textContent = 'บันทึกการชำระเงิน';
+    }
+  }
+
+  // ---------- ค่าบ้าน (ต้องใส่รหัส) ----------
+  async function unlockPay() {
+    const pin = $('payPin').value.trim();
+    $('payErr').textContent = '';
+    if (!pin) { $('payErr').textContent = 'กรุณากรอกรหัส'; return; }
+    $('unlockBtn').disabled = true; $('unlockBtn').textContent = 'กำลังตรวจสอบ...';
+    const { data, error } = await sb.rpc('get_student_status', { p_name: creds.name, p_pin: pin });
+    $('unlockBtn').disabled = false; $('unlockBtn').textContent = 'ปลดล็อก';
+    if (error) { $('payErr').textContent = 'เชื่อมต่อระบบไม่ได้: ' + error.message; return; }
+    if (!data) { $('payErr').textContent = 'รหัสไม่ถูกต้อง'; return; }
+    payPin = pin; me = data;
+    $('payLock').classList.add('hidden'); $('payContent').classList.remove('hidden');
+    renderPay(true);
+  }
+
+  function lockPay() {
+    payPin = null; me = null;
+    $('payPin').value = ''; $('payErr').textContent = '';
+    $('payContent').classList.add('hidden'); $('payLock').classList.remove('hidden');
   }
 
   async function refresh() {
-    const { data } = await sb.rpc('get_student_status', { p_name: creds.name, p_pin: creds.pin });
-    if (data) { me = data; render(false); }
+    const { data } = await sb.rpc('get_student_status', { p_name: creds.name, p_pin: payPin });
+    if (data) { me = data; renderPay(false); }
   }
 
-  async function loadReceivers() {
-    const { data } = await sb.from('receivers').select('name').eq('active', true).order('id');
-    const sel = $('receiver');
-    sel.innerHTML = '<option value="" disabled selected>เลือกชื่อ</option>' +
-      (data || []).map(r => `<option value="${esc(r.name)}">${esc(r.name)}</option>`).join('');
-  }
-
-  function render(showNotices = true) {
-    $('loginView').classList.add('hidden'); $('mainView').classList.remove('hidden');
-    $('helloName').textContent = me.full_name; $('helloGrade').textContent = me.grade;
-
+  function renderPay(markRead) {
     // แจ้งเตือนจากแอดมิน
     $('noticeList').innerHTML = me.notices.map(n =>
       `<div class="notice"><b>📢 แจ้งเตือนจากผู้ดูแล</b><br>${esc(n.message)}</div>`).join('');
-    if (showNotices && me.notices.length) sb.rpc('mark_notices_read', { p_name: creds.name, p_pin: creds.pin });
-    if (showNotices) { showTab('pay'); loadBoard(); }
+    if (markRead && me.notices.length) sb.rpc('mark_notices_read', { p_name: creds.name, p_pin: payPin });
 
     // ยอดค้าง
     const owed = calcOwed(me), box = $('statusBox'), total = owed.reduce((a, b) => a + b.remaining, 0);
@@ -307,12 +492,6 @@
     $('amount').value = o ? o.remaining : me.fee;
   }
 
-  function toggleTransfer(show) {
-    $('qrBox').style.display = show ? 'block' : 'none';
-    $('slipBox').style.display = show ? 'block' : 'none';
-    $('slipFile').required = show;
-  }
-
   async function submitPayment(e) {
     e.preventDefault();
     const btn = $('submitBtn'); btn.disabled = true; btn.textContent = 'กำลังบันทึก...';
@@ -320,16 +499,12 @@
       const method = document.querySelector('input[name=payMethod]:checked').value;
       let slipPath = '';
       if (method === 'โอนเงิน') {
-        const f = $('slipFile').files[0];
+        const f = $('pSlipFile').files[0];
         if (!f) throw new Error('กรุณาแนบสลิป');
-        if (f.size > 5 * 1024 * 1024) throw new Error('ไฟล์สลิปใหญ่เกิน 5 MB');
-        const ext = (f.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '');
-        slipPath = `${new Date().toISOString().slice(0,7)}/${crypto.randomUUID()}.${ext}`;
-        const up = await sb.storage.from('slips').upload(slipPath, f, { contentType: f.type });
-        if (up.error) throw new Error('อัปโหลดสลิปไม่สำเร็จ: ' + up.error.message);
+        slipPath = await uploadImg('slips', f, 'slips', 1600);
       }
       const { data, error } = await sb.rpc('submit_payment', {
-        p_name: creds.name, p_pin: creds.pin, p_month: $('month').value,
+        p_name: creds.name, p_pin: payPin, p_month: $('month').value,
         p_amount: parseInt($('amount').value, 10), p_method: method,
         p_receiver: $('receiver').value, p_slip_path: slipPath, p_note: $('note').value.trim()
       });
@@ -338,11 +513,10 @@
 
       await refresh();
       const owed = calcOwed(me);
-      $('successMsg').textContent = owed.length
+      showSuccess(owed.length
         ? `ยังค้างอีก ${owed.length} เดือน: ${owed.map(o => thMonth(o.month)).join(', ')}`
-        : 'ชำระครบทุกเดือนแล้ว 🎉 (รอผู้ดูแลตรวจสอบ)';
-      $('successModal').style.display = 'flex';
-      $('payForm').reset(); toggleTransfer(false); fillAmount();
+        : 'ชำระครบทุกเดือนแล้ว 🎉 (รอผู้ดูแลตรวจสอบ)');
+      $('payForm').reset(); toggleBox('p', false); fillAmount();
     } catch (err) {
       alert('เกิดข้อผิดพลาด: ' + err.message);
     } finally {
@@ -350,49 +524,10 @@
     }
   }
 
-  function closeModal() { $('successModal').style.display = 'none'; }
-
-  // ================= แจ้งซ่อม + ห้องน้ำ =================
-  let board = null;
-  const FL = { 'บน': 'ชั้นบน', 'ล่าง': 'ชั้นล่าง' };
-  const thShort = d => new Date(d + 'T00:00:00+07:00').toLocaleDateString('th-TH', { day: 'numeric', month: 'short' });
-  const thDT = d => new Date(d).toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short', timeZone: 'Asia/Bangkok' });
-  const photoUrl = p => sb.storage.from('dorm-photos').getPublicUrl(p).data.publicUrl;
-  const thumb = p => p ? `<a href="${esc(photoUrl(p))}" target="_blank" rel="noopener"><img class="thumb" src="${esc(photoUrl(p))}" loading="lazy" alt="รูป"></a>` : '';
-
-  function showTab(t) {
-    document.querySelectorAll('.tabbtn').forEach(b => b.classList.toggle('active', b.dataset.t === t));
-    ['pay', 'repair', 'clean'].forEach(x => $('tab-' + x).classList.toggle('hidden', x !== t));
-    if (t !== 'pay') loadBoard();
-  }
-
-  // ย่อรูปก่อนอัปโหลด (รูปจากมือถือใหญ่มาก)
-  function compressImage(file) {
-    return new Promise((resolve, reject) => {
-      const img = new Image(), url = URL.createObjectURL(file);
-      img.onload = () => {
-        const max = 1280, r = Math.min(1, max / Math.max(img.width, img.height));
-        const c = document.createElement('canvas');
-        c.width = Math.round(img.width * r); c.height = Math.round(img.height * r);
-        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
-        URL.revokeObjectURL(url);
-        c.toBlob(b => b ? resolve(b) : reject(new Error('แปลงรูปไม่สำเร็จ')), 'image/jpeg', 0.8);
-      };
-      img.onerror = () => reject(new Error('เปิดไฟล์รูปไม่ได้ (ลองถ่ายใหม่หรือเลือกไฟล์ JPG/PNG)'));
-      img.src = url;
-    });
-  }
-  async function uploadPhoto(file, folder) {
-    const blob = await compressImage(file);
-    const path = `${folder}/${new Date().toISOString().slice(0, 7)}/${crypto.randomUUID()}.jpg`;
-    const { error } = await sb.storage.from('dorm-photos').upload(path, blob, { contentType: 'image/jpeg' });
-    if (error) throw new Error('อัปโหลดรูปไม่สำเร็จ: ' + error.message);
-    return path;
-  }
-
+  // ---------- แจ้งซ่อม + ห้องน้ำ (ไม่ใช้รหัส) ----------
   async function loadBoard() {
     if (!creds) return;
-    const { data, error } = await sb.rpc('get_dorm_board', { p_name: creds.name, p_pin: creds.pin });
+    const { data, error } = await sb.rpc('board_by_name', { p_name: creds.name });
     if (error || !data) {
       const m = '<p class="err">โหลดข้อมูลไม่สำเร็จ' + (error ? ': ' + esc(error.message) : '') + '</p>';
       $('cleanBoard').innerHTML = m; $('repairList').innerHTML = m; return;
@@ -462,8 +597,8 @@
     if (!f) return alert('กรุณาถ่ายหรือเลือกรูปก่อน');
     const btn = $('cleanBtn'); btn.disabled = true; btn.textContent = 'กำลังอัปโหลด...';
     try {
-      const path = await uploadPhoto(f, 'clean');
-      const { data, error } = await sb.rpc('submit_cleaning', { p_name: creds.name, p_pin: creds.pin, p_photo_path: path });
+      const path = await uploadImg('dorm-photos', f, 'clean');
+      const { data, error } = await sb.rpc('submit_cleaning_by_name', { p_name: creds.name, p_photo_path: path });
       if (error) throw new Error(error.message);
       if (!data.ok) throw new Error(data.message);
       await loadBoard();
@@ -479,9 +614,9 @@
     const btn = $('repairBtn'); btn.disabled = true; btn.textContent = 'กำลังส่ง...';
     try {
       const f = $('rPhoto').files[0];
-      const path = f ? await uploadPhoto(f, 'repair') : '';
-      const { data, error } = await sb.rpc('submit_repair', {
-        p_name: creds.name, p_pin: creds.pin, p_title: $('rTitle').value,
+      const path = f ? await uploadImg('dorm-photos', f, 'repair') : '';
+      const { data, error } = await sb.rpc('submit_repair_by_name', {
+        p_name: creds.name, p_title: $('rTitle').value,
         p_location: $('rLoc').value, p_detail: $('rDetail').value.trim(), p_photo_path: path
       });
       if (error) throw new Error(error.message);
@@ -496,15 +631,16 @@
     }
   }
 
-  // จำการเข้าสู่ระบบในแท็บนี้
+  // ---------- เริ่มต้น ----------
+  loadConfig(); loadReceivers();
   (async () => {
-    const saved = sessionStorage.getItem('creds');
+    const saved = sessionStorage.getItem('name');
     if (!saved) return;
-    creds = JSON.parse(saved);
-    const { data } = await sb.rpc('get_student_status', { p_name: creds.name, p_pin: creds.pin });
-    if (data) { me = data; await loadReceivers(); render(); }
+    const { data } = await sb.rpc('board_by_name', { p_name: saved });
+    if (data) { creds = { name: saved }; board = data; enterMain(); }
   })();
-  $('loginPin').addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
+  $('loginName').addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
+  $('payPin').addEventListener('keydown', e => { if (e.key === 'Enter') unlockPay(); });
 </script>
 </body>
 </html>
