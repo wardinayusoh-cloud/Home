@@ -10,7 +10,19 @@
     :root{--primary-dark:#0f2b46;--primary:#1e40af;--primary-light:#60a5fa;--danger:#dc2626;--ok:#16a34a;--text-muted:#64748b}
     *{box-sizing:border-box;margin:0;padding:0;font-family:'Sarabun',sans-serif}
     body{background:linear-gradient(135deg,#e0f2fe,#f8fafc);min-height:100vh;color:#1e293b;padding:20px}
-    .wrap{max-width:1000px;margin:0 auto}
+    .wrap{max-width:1280px;margin:0 auto}
+    #app{display:flex;gap:20px;align-items:flex-start}
+    .main{flex:1;min-width:0}
+    .sidebar{position:sticky;top:20px;height:calc(100vh - 40px);width:230px;flex-shrink:0;background:linear-gradient(180deg,var(--primary-dark),var(--primary));color:#fff;border-radius:20px;padding:20px 14px;display:flex;flex-direction:column;box-shadow:0 10px 30px rgba(15,43,70,.15)}
+    .sidebar .brand{font-size:18px;font-weight:700;padding:4px 10px 18px;border-bottom:1px solid rgba(255,255,255,.18);margin-bottom:14px}
+    .sidebar .brand small{display:block;font-size:12px;font-weight:400;color:var(--primary-light);margin-top:2px}
+    .sidebar nav{display:flex;flex-direction:column;gap:6px;flex:1;overflow-y:auto}
+    .sidebar .tab{background:transparent;border:none;color:#cbd5e1;border-radius:12px;padding:11px 14px;text-align:left;font-size:15px}
+    .sidebar .tab:hover{background:rgba(255,255,255,.1);color:#fff}
+    .sidebar .tab.active{background:rgba(255,255,255,.2);color:#fff}
+    .sidebar .logout{width:100%;background:rgba(255,255,255,.15);padding:11px;margin-top:12px}
+    .sidebar .logout:hover{background:var(--danger)}
+    @media(max-width:820px){#app{flex-direction:column}.sidebar{position:static;width:100%;height:auto}.sidebar nav{flex-direction:row;flex-wrap:wrap;overflow:visible}}
     .top{background:linear-gradient(135deg,var(--primary-dark),var(--primary));color:#fff;border-radius:20px;padding:22px 26px;display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;flex-wrap:wrap;gap:10px}
     .top h2{font-size:22px}
     .card{background:#fff;border-radius:20px;border:1px solid rgba(96,165,250,.2);box-shadow:0 10px 30px rgba(15,43,70,.06);padding:22px;margin-bottom:18px}
@@ -35,6 +47,7 @@
     .tag.ok{background:#dcfce7;color:#15803d}.tag.bad{background:#fee2e2;color:#b91c1c}.tag.wait{background:#fef9c3;color:#a16207}
     .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
     .hidden{display:none!important}
+    .qr-prev{max-width:220px;border:1px solid #e2e8f0;border-radius:12px;margin-bottom:8px}
     .thumb{width:56px;height:56px;object-fit:cover;border-radius:8px;border:1px solid #e2e8f0}
     .tag.prog{background:#dbeafe;color:#1d4ed8}.tag.gray{background:#e2e8f0;color:#475569}
     .floor{border:1.5px solid #bfdbfe;border-radius:16px;padding:16px;margin-bottom:16px;background:#f8fbff}
@@ -60,9 +73,24 @@
   </div>
 
   <div id="app" class="hidden">
+    <aside class="sidebar">
+      <div class="brand">🏠 ระบบชำระค่าบ้าน<small>หลังบ้านแอดมิน</small></div>
+      <nav>
+        <div class="tab active" data-tab="summary" onclick="showTab('summary')">📋 สรุปรายคน</div>
+        <div class="tab" data-tab="pending" onclick="showTab('pending')">🧾 รอตรวจสอบ <span id="pBadge"></span></div>
+        <div class="tab" data-tab="all" onclick="showTab('all')">💰 รายการทั้งหมด</div>
+        <div class="tab" data-tab="guest" onclick="showTab('guest')">🧾 ชำระอื่น ๆ <span id="gBadge"></span></div>
+        <div class="tab" data-tab="repair" onclick="showTab('repair')">🔧 แจ้งซ่อม <span id="rBadge"></span></div>
+        <div class="tab" data-tab="clean" onclick="showTab('clean')">🚿 เวรห้องน้ำ</div>
+        <div class="tab" data-tab="students" onclick="showTab('students')">👥 จัดการนักเรียน</div>
+        <div class="tab" data-tab="settings" onclick="showTab('settings')">⚙️ ตั้งค่า / QR</div>
+      </nav>
+      <button class="btn logout" onclick="adminLogout()">⏻ ออกจากระบบ</button>
+    </aside>
+
+    <main class="main">
     <div class="top">
       <div><h2>หลังบ้าน · ระบบชำระค่าบ้าน</h2><small id="todayLabel"></small></div>
-      <button class="btn gray" onclick="adminLogout()">ออกจากระบบ</button>
     </div>
 
     <div class="stats">
@@ -73,14 +101,6 @@
       <div class="stat"><small>รับเงินเดือนนี้ (บาท)</small><b id="sMonthIn" style="color:var(--ok)">0</b></div>
     </div>
 
-    <div class="tabs">
-      <div class="tab active" data-tab="summary" onclick="showTab('summary')">สรุปรายคน</div>
-      <div class="tab" data-tab="pending" onclick="showTab('pending')">รอตรวจสอบ <span id="pBadge"></span></div>
-      <div class="tab" data-tab="all" onclick="showTab('all')">รายการทั้งหมด</div>
-      <div class="tab" data-tab="repair" onclick="showTab('repair')">แจ้งซ่อม <span id="rBadge"></span></div>
-      <div class="tab" data-tab="clean" onclick="showTab('clean')">เวรห้องน้ำ</div>
-      <div class="tab" data-tab="students" onclick="showTab('students')">จัดการนักเรียน</div>
-    </div>
 
     <!-- สรุปรายคน -->
     <div class="card" id="tab-summary">
@@ -117,6 +137,15 @@
       </table></div>
     </div>
 
+    <!-- ชำระอื่น ๆ (ไม่ใช่ผู้เช่ารายเดือน) -->
+    <div class="card hidden" id="tab-guest">
+      <h3>ชำระเงินจากผู้ที่ไม่ใช่ผู้เช่ารายเดือน</h3>
+      <div class="scroll"><table>
+        <thead><tr><th>วันที่</th><th>ชื่อ</th><th>รายการ</th><th>ยอด</th><th>วิธี / ผู้รับ</th><th>สลิป</th><th>สถานะ</th></tr></thead>
+        <tbody id="guestBody"></tbody>
+      </table></div>
+    </div>
+
     <!-- แจ้งซ่อม -->
     <div class="card hidden" id="tab-repair">
       <h3>รายการแจ้งซ่อม</h3>
@@ -143,6 +172,22 @@
         <select id="nBath"><option value="">ห้องน้ำ: ไม่ระบุ</option><option value="บน">ห้องน้ำชั้นบน</option><option value="ล่าง">ห้องน้ำชั้นล่าง</option></select>
         <button class="btn" onclick="addStudent()">เพิ่ม</button>
       </div>
+      <div class="scroll"><table>
+        <thead><tr><th>ชื่อ</th><th>ชั้น</th><th>รหัส</th><th>เริ่มนับ</th><th>ห้องน้ำ (ชั้น / ลำดับเวร)</th><th>สถานะ</th><th></th></tr></thead>
+        <tbody id="studentBody"></tbody>
+      </table></div>
+    </div>
+
+    <!-- ตั้งค่า -->
+    <div class="card hidden" id="tab-settings">
+      <h3>QR รับเงิน</h3>
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:10px">รูปนี้จะแสดงในหน้านักเรียนเมื่อเลือก "โอนเงิน"</p>
+      <div id="qrPreview"></div>
+      <div class="row">
+        <input type="file" id="qrFile" accept="image/*">
+        <button class="btn" onclick="uploadQr()">อัปโหลด QR</button>
+      </div>
+      <h3 style="margin-top:26px">ค่าบ้านและเวร</h3>
       <div class="row">
         <label style="font-size:14px">ค่าบ้านต่อเดือน (บาท)</label>
         <input type="number" id="feeInput" style="width:110px">
@@ -154,11 +199,8 @@
         <button class="btn sm" onclick="saveAnchor()">บันทึก</button>
         <small style="color:var(--text-muted)">⚠ เปลี่ยนแล้วตารางเวรจะเลื่อนทั้งหมด</small>
       </div>
-      <div class="scroll"><table>
-        <thead><tr><th>ชื่อ</th><th>ชั้น</th><th>รหัส</th><th>เริ่มนับ</th><th>ห้องน้ำ (ชั้น / ลำดับเวร)</th><th>สถานะ</th><th></th></tr></thead>
-        <tbody id="studentBody"></tbody>
-      </table></div>
     </div>
+    </main>
   </div>
 </div>
 
@@ -201,15 +243,18 @@
   }
 
   async function loadAll() {
-    const [s, p, st, n] = await Promise.all([
+    const [s, p, st, n, g] = await Promise.all([
       sb.from('students').select('*').order('full_name'),
       sb.from('payments').select('*').order('created_at', { ascending: false }),
-      sb.from('settings').select('monthly_fee, cleaning_anchor').eq('id', 1).single(),
-      sb.from('notices').select('student_id, created_at, read_at').order('created_at', { ascending: false })
+      sb.from('settings').select('monthly_fee, cleaning_anchor, qr_path').eq('id', 1).single(),
+      sb.from('notices').select('student_id, created_at, read_at').order('created_at', { ascending: false }),
+      sb.from('guest_payments').select('*').order('created_at', { ascending: false })
     ]);
     students = s.data || []; payments = p.data || []; notices = n.data || [];
     fee = st.data?.monthly_fee ?? 800; $('feeInput').value = fee;
     $('anchorInput').value = st.data?.cleaning_anchor ?? '';
+    qrPath = st.data?.qr_path || null; guests = g.data || [];
+    renderQrAdmin(); renderGuests();
     computeRows(); renderAll_();
     loadBoard();
   }
@@ -303,12 +348,13 @@
         <input type="number" min="1" style="width:64px" placeholder="ลำดับ" value="${s.bathroom_order ?? ''}" onchange="setBathOrder('${s.id}', this.value)">
       </td>
       <td>${s.active ? '<span class="tag ok">ใช้งาน</span>' : '<span class="tag bad">ปิด</span>'}</td>
-      <td><button class="btn sm gray" onclick="toggleActive('${s.id}',${!s.active})">${s.active ? 'ปิดใช้งาน' : 'เปิดใช้งาน'}</button></td></tr>`).join('');
+      <td style="white-space:nowrap"><button class="btn sm gray" onclick="toggleActive('${s.id}',${!s.active})">${s.active ? 'ปิดใช้งาน' : 'เปิดใช้งาน'}</button>
+        <button class="btn sm red" onclick="deleteStudent('${s.id}')">ลบ</button></td></tr>`).join('');
   }
 
   function showTab(t) {
     document.querySelectorAll('.tab').forEach(e => e.classList.toggle('active', e.dataset.tab === t));
-    ['summary', 'pending', 'all', 'repair', 'clean', 'students'].forEach(x => $('tab-' + x).classList.toggle('hidden', x !== t));
+    ['summary', 'pending', 'all', 'guest', 'repair', 'clean', 'students', 'settings'].forEach(x => $('tab-' + x).classList.toggle('hidden', x !== t));
   }
 
   async function openSlip(path) {
@@ -439,6 +485,76 @@
     const { error } = await sb.from('settings').update({ cleaning_anchor: v }).eq('id', 1);
     if (error) return alert(error.message);
     alert('บันทึกแล้ว'); await loadAll();
+  }
+
+  // ================= ลบนักเรียน / QR / ชำระอื่น ๆ =================
+  let qrPath = null, guests = [];
+
+  async function deleteStudent(id) {
+    const s = students.find(x => x.id === id); if (!s) return;
+    const n = payments.filter(p => p.student_id === id).length;
+    if (!confirm(`ลบ "${s.full_name}" ออกจากระบบ?\n\nประวัติการชำระ (${n} รายการ) แจ้งเตือน แจ้งซ่อม และประวัติเวรห้องน้ำของคนนี้จะถูกลบด้วย และกู้คืนไม่ได้\n\n(ถ้าแค่ย้ายออก แนะนำให้กด "ปิดใช้งาน" แทน)`)) return;
+    const { error } = await sb.from('students').delete().eq('id', id);
+    if (error) return alert('ลบไม่สำเร็จ: ' + error.message);
+    await loadAll();
+  }
+
+  function renderQrAdmin() {
+    if (qrPath) {
+      const u = sb.storage.from('qr').getPublicUrl(qrPath).data.publicUrl;
+      $('qrPreview').innerHTML = `<img class="qr-prev" src="${esc(u)}" alt="QR"><br><button class="btn sm red" onclick="removeQr()">ลบ QR</button>`;
+    } else {
+      $('qrPreview').innerHTML = '<p style="color:var(--text-muted);font-size:14px;margin-bottom:10px">ยังไม่ได้อัปโหลด QR</p>';
+    }
+  }
+  async function uploadQr() {
+    const f = $('qrFile').files[0];
+    if (!f) return alert('เลือกรูป QR ก่อน');
+    if (f.size > 5 * 1024 * 1024) return alert('ไฟล์ใหญ่เกิน 5 MB');
+    const ext = (f.name.split('.').pop() || 'png').toLowerCase().replace(/[^a-z0-9]/g, '') || 'png';
+    const path = `qr-${Date.now()}.${ext}`;
+    const up = await sb.storage.from('qr').upload(path, f, { contentType: f.type });
+    if (up.error) return alert('อัปโหลดไม่สำเร็จ: ' + up.error.message + '\n(รัน schema3.sql แล้วหรือยัง?)');
+    const old = qrPath;
+    const { error } = await sb.from('settings').update({ qr_path: path }).eq('id', 1);
+    if (error) return alert('บันทึกไม่สำเร็จ: ' + error.message);
+    if (old) await sb.storage.from('qr').remove([old]);
+    $('qrFile').value = '';
+    alert('อัปโหลด QR แล้ว'); await loadAll();
+  }
+  async function removeQr() {
+    if (!qrPath || !confirm('ลบรูป QR นี้?')) return;
+    const { error } = await sb.from('settings').update({ qr_path: null }).eq('id', 1);
+    if (error) return alert(error.message);
+    await sb.storage.from('qr').remove([qrPath]);
+    await loadAll();
+  }
+
+  function renderGuests() {
+    const lab = { pending: ['wait', 'รอตรวจ'], confirmed: ['ok', 'ยืนยันแล้ว'], rejected: ['bad', 'ไม่ผ่าน'] };
+    const pend = guests.filter(g => g.status === 'pending').length;
+    $('gBadge').textContent = pend ? `(${pend})` : '';
+    $('guestBody').innerHTML = guests.length ? guests.map(g => `<tr>
+      <td>${thDate(g.created_at)}</td><td><b>${esc(g.payer_name)}</b></td>
+      <td>${esc(g.purpose || '')}${g.note ? `<br><small>${esc(g.note)}</small>` : ''}</td>
+      <td>${g.amount.toLocaleString()}</td><td>${esc(g.method)}<br><small>${esc(g.receiver || '')}</small></td>
+      <td>${g.slip_path ? `<a class="slip" onclick="openSlip('${esc(g.slip_path)}')">ดูสลิป</a>` : '-'}</td>
+      <td style="white-space:nowrap"><span class="tag ${lab[g.status][0]}">${lab[g.status][1]}</span><br>
+        ${g.status === 'pending' ? `<button class="btn sm green" onclick="setGuest('${g.id}','confirmed')">ยืนยัน</button>
+        <button class="btn sm red" onclick="setGuest('${g.id}','rejected')">ไม่ผ่าน</button>` : ''}
+        <button class="btn sm gray" onclick="deleteGuest('${g.id}')">ลบ</button></td></tr>`).join('')
+      : '<tr><td colspan="7" class="empty">ยังไม่มีรายการ</td></tr>';
+  }
+  async function setGuest(id, status) {
+    const { error } = await sb.from('guest_payments').update({ status }).eq('id', id);
+    if (error) return alert(error.message);
+    await loadAll();
+  }
+  async function deleteGuest(id) {
+    if (!confirm('ลบรายการนี้?')) return;
+    const { error } = await sb.from('guest_payments').delete().eq('id', id);
+    if (error) return alert(error.message);
+    await loadAll();
   }
 
   function exportCsv() {
