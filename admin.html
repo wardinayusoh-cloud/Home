@@ -77,9 +77,8 @@
       <div class="brand">🏠 ระบบชำระค่าบ้าน<small>หลังบ้านแอดมิน</small></div>
       <nav>
         <div class="tab active" data-tab="summary" onclick="showTab('summary')">📋 สรุปรายคน</div>
-        <div class="tab" data-tab="pending" onclick="showTab('pending')">🧾 รอตรวจสอบ <span id="pBadge"></span></div>
         <div class="tab" data-tab="all" onclick="showTab('all')">💰 รายการทั้งหมด</div>
-        <div class="tab" data-tab="guest" onclick="showTab('guest')">🧾 ชำระอื่น ๆ <span id="gBadge"></span></div>
+        <div class="tab" data-tab="guest" onclick="showTab('guest')">🧾 ชำระอื่น ๆ</div>
         <div class="tab" data-tab="repair" onclick="showTab('repair')">🔧 แจ้งซ่อม <span id="rBadge"></span></div>
         <div class="tab" data-tab="clean" onclick="showTab('clean')">🚿 เวรห้องน้ำ</div>
         <div class="tab" data-tab="students" onclick="showTab('students')">👥 จัดการนักเรียน</div>
@@ -97,7 +96,6 @@
       <div class="stat"><small>นักเรียนทั้งหมด</small><b id="sTotal">0</b></div>
       <div class="stat"><small>ค้างชำระ (คน)</small><b id="sOwing" style="color:var(--danger)">0</b></div>
       <div class="stat"><small>ยอดค้างรวม (บาท)</small><b id="sSum" style="color:var(--danger)">0</b></div>
-      <div class="stat"><small>รอตรวจสลิป</small><b id="sPending" style="color:#a16207">0</b></div>
       <div class="stat"><small>รับเงินเดือนนี้ (บาท)</small><b id="sMonthIn" style="color:var(--ok)">0</b></div>
     </div>
 
@@ -116,15 +114,6 @@
       </table></div>
     </div>
 
-    <!-- รอตรวจสอบ -->
-    <div class="card hidden" id="tab-pending">
-      <h3>รายการรอตรวจสอบ</h3>
-      <div class="scroll"><table>
-        <thead><tr><th>วันที่</th><th>ชื่อ</th><th>เดือน</th><th>ยอด</th><th>วิธี / ผู้รับ</th><th>สลิป</th><th></th></tr></thead>
-        <tbody id="pendingBody"></tbody>
-      </table></div>
-    </div>
-
     <!-- รายการทั้งหมด -->
     <div class="card hidden" id="tab-all">
       <div class="row">
@@ -132,7 +121,7 @@
         <button class="btn gray" onclick="exportCsv()">ดาวน์โหลด CSV</button>
       </div>
       <div class="scroll"><table>
-        <thead><tr><th>วันที่</th><th>ชื่อ</th><th>เดือน</th><th>ยอด</th><th>วิธี / ผู้รับ</th><th>หมายเหตุ</th><th>สถานะ</th></tr></thead>
+        <thead><tr><th>วันที่</th><th>ชื่อ</th><th>เดือน</th><th>ยอด</th><th>วิธี / ผู้รับ</th><th>หมายเหตุ</th><th>สลิป</th><th></th></tr></thead>
         <tbody id="allBody"></tbody>
       </table></div>
     </div>
@@ -141,7 +130,7 @@
     <div class="card hidden" id="tab-guest">
       <h3>ชำระเงินจากผู้ที่ไม่ใช่ผู้เช่ารายเดือน</h3>
       <div class="scroll"><table>
-        <thead><tr><th>วันที่</th><th>ชื่อ</th><th>รายการ</th><th>ยอด</th><th>วิธี / ผู้รับ</th><th>สลิป</th><th>สถานะ</th></tr></thead>
+        <thead><tr><th>วันที่</th><th>ชื่อ</th><th>รายการ</th><th>ยอด</th><th>วิธี / ผู้รับ</th><th>สลิป</th><th></th></tr></thead>
         <tbody id="guestBody"></tbody>
       </table></div>
     </div>
@@ -273,18 +262,15 @@
   }
 
   function renderAll_() {
-    renderStats(); renderSummary(); renderPending(); renderMonthFilter(); renderAll(); renderStudents();
+    renderStats(); renderSummary(); renderMonthFilter(); renderAll(); renderStudents();
   }
 
   function renderStats() {
     const owing = rows.filter(r => r.owed.length);
-    const pend = payments.filter(p => p.status === 'pending');
     $('sTotal').textContent = students.filter(s => s.active).length;
     $('sOwing').textContent = owing.length;
     $('sSum').textContent = owing.reduce((a, r) => a + r.total, 0).toLocaleString();
-    $('sPending').textContent = pend.length;
-    $('pBadge').textContent = pend.length ? `(${pend.length})` : '';
-    $('sMonthIn').textContent = payments.filter(p => p.month_key === curKey() && p.status === 'confirmed')
+    $('sMonthIn').textContent = payments.filter(p => p.month_key === curKey() && p.status !== 'rejected')
       .reduce((a, p) => a + p.amount, 0).toLocaleString();
   }
 
@@ -306,17 +292,6 @@
 
   const nameOf = id => students.find(s => s.id === id)?.full_name || '-';
 
-  function renderPending() {
-    const pend = payments.filter(p => p.status === 'pending');
-    $('pendingBody').innerHTML = pend.length ? pend.map(p => `<tr>
-      <td>${thDate(p.created_at)}</td><td>${esc(nameOf(p.student_id))}</td><td>${thMonth(p.month_key)}</td>
-      <td>${p.amount.toLocaleString()}</td><td>${esc(p.method)}<br><small>${esc(p.receiver || '')}</small></td>
-      <td>${p.slip_path ? `<a class="slip" onclick="openSlip('${esc(p.slip_path)}')">ดูสลิป</a>` : '-'}</td>
-      <td><button class="btn sm green" onclick="setStatus('${p.id}','confirmed')">ยืนยัน</button>
-          <button class="btn sm red" onclick="setStatus('${p.id}','rejected')">ไม่ผ่าน</button></td></tr>`).join('')
-      : '<tr><td colspan="7" class="empty">ไม่มีรายการรอตรวจสอบ 🎉</td></tr>';
-  }
-
   function renderMonthFilter() {
     const keys = [...new Set([curKey(), ...payments.map(p => p.month_key)])].sort().reverse();
     const old = $('fMonth').value;
@@ -332,8 +307,10 @@
     $('allBody').innerHTML = list.length ? list.map(p => `<tr>
       <td>${thDate(p.created_at)}</td><td>${esc(nameOf(p.student_id))}</td><td>${thMonth(p.month_key)}</td>
       <td>${p.amount.toLocaleString()}</td><td>${esc(p.method)}<br><small>${esc(p.receiver || '')}</small></td>
-      <td>${esc(p.note || '')}</td><td><span class="tag ${lab[p.status][0]}">${lab[p.status][1]}</span></td></tr>`).join('')
-      : '<tr><td colspan="7" class="empty">ไม่มีรายการ</td></tr>';
+      <td>${esc(p.note || '')}</td>
+      <td>${p.slip_path ? `<a class="slip" onclick="openSlip('${esc(p.slip_path)}')">ดูสลิป</a>` : '-'}</td>
+      <td><button class="btn sm gray" onclick="deletePayment('${p.id}')">ลบ</button></td></tr>`).join('')
+      : '<tr><td colspan="8" class="empty">ไม่มีรายการ</td></tr>';
   }
 
   function renderStudents() {
@@ -354,7 +331,7 @@
 
   function showTab(t) {
     document.querySelectorAll('.tab').forEach(e => e.classList.toggle('active', e.dataset.tab === t));
-    ['summary', 'pending', 'all', 'guest', 'repair', 'clean', 'students', 'settings'].forEach(x => $('tab-' + x).classList.toggle('hidden', x !== t));
+    ['summary', 'all', 'guest', 'repair', 'clean', 'students', 'settings'].forEach(x => $('tab-' + x).classList.toggle('hidden', x !== t));
   }
 
   async function openSlip(path) {
@@ -532,17 +509,12 @@
 
   function renderGuests() {
     const lab = { pending: ['wait', 'รอตรวจ'], confirmed: ['ok', 'ยืนยันแล้ว'], rejected: ['bad', 'ไม่ผ่าน'] };
-    const pend = guests.filter(g => g.status === 'pending').length;
-    $('gBadge').textContent = pend ? `(${pend})` : '';
     $('guestBody').innerHTML = guests.length ? guests.map(g => `<tr>
       <td>${thDate(g.created_at)}</td><td><b>${esc(g.payer_name)}</b></td>
       <td>${esc(g.purpose || '')}${g.note ? `<br><small>${esc(g.note)}</small>` : ''}</td>
       <td>${g.amount.toLocaleString()}</td><td>${esc(g.method)}<br><small>${esc(g.receiver || '')}</small></td>
       <td>${g.slip_path ? `<a class="slip" onclick="openSlip('${esc(g.slip_path)}')">ดูสลิป</a>` : '-'}</td>
-      <td style="white-space:nowrap"><span class="tag ${lab[g.status][0]}">${lab[g.status][1]}</span><br>
-        ${g.status === 'pending' ? `<button class="btn sm green" onclick="setGuest('${g.id}','confirmed')">ยืนยัน</button>
-        <button class="btn sm red" onclick="setGuest('${g.id}','rejected')">ไม่ผ่าน</button>` : ''}
-        <button class="btn sm gray" onclick="deleteGuest('${g.id}')">ลบ</button></td></tr>`).join('')
+      <td><button class="btn sm gray" onclick="deleteGuest('${g.id}')">ลบ</button></td></tr>`).join('')
       : '<tr><td colspan="7" class="empty">ยังไม่มีรายการ</td></tr>';
   }
   async function setGuest(id, status) {
@@ -553,6 +525,14 @@
   async function deleteGuest(id) {
     if (!confirm('ลบรายการนี้?')) return;
     const { error } = await sb.from('guest_payments').delete().eq('id', id);
+    if (error) return alert(error.message);
+    await loadAll();
+  }
+
+  async function deletePayment(id) {
+    const p = payments.find(x => x.id === id); if (!p) return;
+    if (!confirm(`ลบรายการชำระของ ${nameOf(p.student_id)} (${thMonth(p.month_key)} · ${p.amount.toLocaleString()} บาท)?\nยอดค้างของคนนี้จะคำนวณใหม่`)) return;
+    const { error } = await sb.from('payments').delete().eq('id', id);
     if (error) return alert(error.message);
     await loadAll();
   }
