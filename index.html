@@ -4,83 +4,120 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ระบบชำระค่าบ้าน</title>
-  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    :root{--primary-dark:#0f2b46;--primary:#1e40af;--primary-light:#60a5fa;--bg-gradient:linear-gradient(135deg,#e0f2fe 0%,#f8fafc 100%);--white:#fff;--text-main:#1e293b;--text-muted:#64748b;--danger:#dc2626;--ok:#16a34a}
-    *{box-sizing:border-box;margin:0;padding:0;font-family:'Sarabun',sans-serif}
-    body{background:var(--bg-gradient);color:var(--text-main);min-height:100vh;display:flex;justify-content:center;align-items:flex-start;padding:20px}
-    .container{background:var(--white);width:100%;max-width:550px;border-radius:24px;box-shadow:0 10px 30px rgba(15,43,70,.08);overflow:hidden;border:1px solid rgba(96,165,250,.2)}
-    .header{background:linear-gradient(135deg,var(--primary-dark),var(--primary));color:#fff;padding:30px 20px;text-align:center}
-    .header h2{font-size:24px;font-weight:700}
-    .header p{font-size:14px;color:var(--primary-light);margin-top:5px}
-    .body{padding:30px}
-    .form-group{margin-bottom:20px}
-    label{display:block;font-size:14px;font-weight:600;color:var(--primary-dark);margin-bottom:8px}
-    input[type=text],input[type=number],input[type=password],select,textarea{width:100%;padding:12px 16px;border:1.5px solid #cbd5e1;border-radius:12px;font-size:15px;color:var(--text-main);background:#f8fafc;transition:.3s;outline:none}
-    input:focus,select:focus,textarea:focus{border-color:var(--primary);background:#fff;box-shadow:0 0 0 4px rgba(30,64,175,.15)}
+    :root{
+      --ink:#10243E; --primary-dark:#10243E; --primary:#1F4FD8; --primary-light:#8FB0F5;
+      --bg:#EEF1F5; --white:#fff; --line:#DCE2EA; --soft:#F6F8FB;
+      --text-main:#17202E; --text-muted:#5F6B7C; --danger:#C0392B; --ok:#0F7B5F;
+    }
+    *{box-sizing:border-box;margin:0;padding:0;font-family:'IBM Plex Sans Thai','Sarabun',sans-serif}
+    body{background:var(--bg);color:var(--text-main);min-height:100vh;display:flex;justify-content:center;align-items:flex-start;padding:20px 14px 40px;font-size:15px;line-height:1.55}
+    .container{background:var(--white);width:100%;max-width:520px;border-radius:14px;border:1px solid var(--line);box-shadow:0 1px 2px rgba(16,36,62,.06),0 10px 28px rgba(16,36,62,.07);overflow:hidden}
+    .header{background:var(--ink);color:#fff;padding:22px 24px;display:flex;align-items:center;gap:14px}
+    .brand-mark{width:42px;height:42px;border-radius:11px;background:rgba(255,255,255,.12);display:grid;place-items:center;font-size:21px;flex-shrink:0}
+    .header h2{font-size:19px;font-weight:600}
+    .header p{font-size:13px;color:#A9BAD3;margin-top:1px}
+    .body{padding:24px}
+
+    .form-group{margin-bottom:18px}
+    label{display:block;font-size:14px;font-weight:500;color:var(--ink);margin-bottom:7px}
+    input[type=text],input[type=number],input[type=password],select,textarea{width:100%;padding:11px 14px;border:1px solid #C5CDD9;border-radius:10px;font-size:15px;color:var(--text-main);background:#fff;transition:border-color .15s,box-shadow .15s;outline:none}
+    input:focus,select:focus,textarea:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(31,79,216,.16)}
+    button:focus-visible,.tabbtn:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
     textarea{resize:vertical}
-    .radio-group{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-    .radio-box{border:1.5px solid #cbd5e1;border-radius:12px;padding:12px;text-align:center;cursor:pointer;font-weight:600;transition:.2s;background:#f8fafc}
+    input[type=file]{width:100%;padding:10px;border:1px dashed #AEB9C8;border-radius:10px;background:var(--soft);cursor:pointer;font-size:14px}
+
+    .radio-group{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .radio-box{border:1px solid #C5CDD9;border-radius:10px;padding:11px;text-align:center;cursor:pointer;font-weight:500;background:#fff;transition:.15s}
     .radio-group input[type=radio]{display:none}
-    .radio-group input[type=radio]:checked+.radio-box{background:#eff6ff;border-color:var(--primary);color:var(--primary)}
-    .qr-box{display:none;background:#f0f7ff;border:1.5px dashed var(--primary-light);border-radius:12px;padding:16px;margin-top:12px;text-align:center;animation:fadeIn .3s ease}
-    .qr-box img{width:100%;max-width:260px;border-radius:12px;background:#fff;border:1px solid #e2e8f0}
+    .radio-group input[type=radio]:checked+.radio-box{background:#EEF3FF;border-color:var(--primary);color:var(--primary);font-weight:600}
+    .qr-box{display:none;background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:16px;margin-top:12px;text-align:center}
+    .qr-box img{width:100%;max-width:250px;border-radius:10px;background:#fff;border:1px solid var(--line)}
     .qr-box .acc{margin-top:10px;font-size:14px}
     .qr-box .acc small{color:var(--text-muted)}
-    .btn-small{background:var(--primary);color:#fff;border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-size:13px;margin-top:10px}
-    .slip-box{display:none;margin-top:15px;animation:fadeIn .3s ease}
-    input[type=file]{width:100%;padding:10px;border:1.5px dashed #cbd5e1;border-radius:12px;background:#f8fafc;cursor:pointer}
-    .btn-primary{width:100%;background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:#fff;border:none;padding:14px;border-radius:12px;font-size:16px;font-weight:600;cursor:pointer;margin-top:10px;box-shadow:0 4px 12px rgba(30,64,175,.2)}
-    .btn-primary:disabled{background:#cbd5e1;cursor:not-allowed;box-shadow:none}
-    .btn-outline{width:100%;background:#fff;color:var(--primary);border:1.5px solid var(--primary);padding:13px;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;margin-top:10px}
+    .slip-box{display:none;margin-top:14px}
+
+    .btn-primary{width:100%;background:var(--primary);color:#fff;border:none;padding:13px;border-radius:10px;font-size:16px;font-weight:600;cursor:pointer;margin-top:8px;transition:background .15s}
+    .btn-primary:hover{background:#1A43B8}
+    .btn-primary:disabled{background:#B6C0CE;cursor:not-allowed}
+    .btn-outline{width:100%;background:#fff;color:var(--primary);border:1px solid var(--primary);padding:12px;border-radius:10px;font-size:15px;font-weight:500;cursor:pointer;margin-top:10px}
+    .btn-outline:hover{background:#F3F6FF}
+    .btn-small{background:var(--primary);color:#fff;border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:500;margin-top:10px}
     .btn-link{background:none;border:none;color:var(--primary);cursor:pointer;font-size:14px;margin-top:14px;text-decoration:underline}
-    .divider{display:flex;align-items:center;gap:10px;color:var(--text-muted);font-size:13px;margin:22px 0 4px}
-    .divider:before,.divider:after{content:"";flex:1;height:1px;background:#e2e8f0}
+    .divider{display:flex;align-items:center;gap:12px;color:var(--text-muted);font-size:13px;margin:22px 0 4px}
+    .divider:before,.divider:after{content:"";flex:1;height:1px;background:var(--line)}
     .hidden{display:none!important}
-    .status{border-radius:16px;padding:18px;margin-bottom:20px}
-    .status.bad{background:#fef2f2;border:1.5px solid #fecaca}
-    .status.good{background:#f0fdf4;border:1.5px solid #bbf7d0}
-    .status h3{font-size:17px;margin-bottom:6px}
+
+    .hello{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+    .hello strong{font-size:17px;font-weight:600;color:var(--ink)}
+    .err{color:var(--danger);font-size:14px;margin-top:10px;text-align:center}
+    .hint{font-size:13px;color:var(--text-muted);margin-bottom:14px;line-height:1.6}
+
+    .tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:4px;background:#E8ECF2;border-radius:12px;margin-bottom:20px}
+    .tabbtn{border:none;background:transparent;border-radius:9px;padding:10px 4px;font-weight:500;font-size:14px;cursor:pointer;color:var(--text-muted)}
+    .tabbtn.active{background:#fff;color:var(--ink);font-weight:600;box-shadow:0 1px 3px rgba(16,36,62,.14)}
+
+    .status{border-radius:12px;padding:16px 18px;margin-bottom:20px;border:1px solid}
+    .status.bad{background:#FDF2F0;border-color:#F3CFC9}
+    .status.good{background:#EDF8F3;border-color:#C5E6D8}
+    .status h3{font-size:16px;font-weight:600;margin-bottom:4px}
     .status.bad h3{color:var(--danger)} .status.good h3{color:var(--ok)}
     .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
-    .chip{background:#fff;border:1px solid #fecaca;color:var(--danger);border-radius:999px;padding:4px 12px;font-size:13px;font-weight:600}
-    .notice{background:#fffbeb;border:1.5px solid #fde68a;border-radius:14px;padding:14px;margin-bottom:12px;font-size:14px}
-    .notice b{color:#b45309}
-    .history{margin-top:26px;border-top:1px solid #e2e8f0;padding-top:18px}
-    .history h4{font-size:15px;margin-bottom:10px;color:var(--primary-dark)}
-    .h-row{display:flex;justify-content:space-between;font-size:13px;padding:8px 0;border-bottom:1px solid #f1f5f9}
-    .tag{font-size:11px;padding:2px 8px;border-radius:999px;font-weight:600}
-    .tag.pending{background:#fef9c3;color:#a16207}.tag.confirmed{background:#dcfce7;color:#15803d}.tag.rejected{background:#fee2e2;color:#b91c1c}
-    .err{color:var(--danger);font-size:14px;margin-top:10px;text-align:center}
-    .hello{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
-    .hello strong{font-size:17px}
-    .modal{display:none;position:fixed;inset:0;background:rgba(15,43,70,.6);backdrop-filter:blur(4px);justify-content:center;align-items:center;padding:20px;z-index:1000}
-    .modal-content{background:#fff;padding:30px;border-radius:20px;text-align:center;max-width:400px;width:100%;animation:scaleUp .3s ease}
-    .success-icon{width:60px;height:60px;background:#dcfce7;color:#16a34a;border-radius:50%;display:flex;justify-content:center;align-items:center;font-size:30px;margin:0 auto 20px}
-    .tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:20px}
-    .tabbtn{border:1.5px solid #cbd5e1;background:#f8fafc;border-radius:12px;padding:10px 4px;font-weight:600;font-size:14px;cursor:pointer;color:var(--text-main)}
-    .tabbtn.active{background:#eff6ff;border-color:var(--primary);color:var(--primary)}
-    .hint{font-size:13px;color:var(--text-muted);margin-bottom:14px}
-    .tag.prog{background:#dbeafe;color:#1d4ed8}.tag.gray{background:#e2e8f0;color:#475569}
-    .thumb{width:64px;height:64px;object-fit:cover;border-radius:10px;border:1px solid #e2e8f0}
-    .item{border:1px solid #e2e8f0;border-radius:14px;padding:14px;margin-bottom:12px;font-size:14px}
-    .item .top{display:flex;justify-content:space-between;gap:8px;align-items:flex-start;margin-bottom:6px}
+    .chip{background:#fff;border:1px solid #F0C4BD;color:var(--danger);border-radius:999px;padding:3px 12px;font-size:13px;font-weight:500}
+    .notice{background:#FFF8E6;border:1px solid #F1DDA5;border-radius:12px;padding:14px 16px;margin-bottom:14px;font-size:14px}
+    .notice b{color:#7A5200}
+    .history{margin-top:24px;border-top:1px solid var(--line);padding-top:16px}
+    .history h4{font-size:15px;font-weight:600;margin-bottom:10px;color:var(--ink)}
+    .h-row{display:flex;justify-content:space-between;font-size:13px;padding:8px 0;border-bottom:1px solid #EEF1F5}
+
+    .tag{font-size:12px;padding:3px 10px;border-radius:999px;font-weight:600;white-space:nowrap}
+    .tag.pending{background:#FFF1CC;color:#7A5200}.tag.confirmed{background:#DDF3EA;color:#0B6B52}.tag.rejected{background:#FBE4E1;color:#A93226}
+    .tag.prog{background:#E3ECFF;color:#1F4FD8}.tag.gray{background:#E8ECF1;color:#4A5668}
+
+    .thumb{width:60px;height:60px;object-fit:cover;border-radius:9px;border:1px solid var(--line);display:block}
+    .item{border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:10px;font-size:14px}
+    .item .top{display:flex;justify-content:space-between;gap:8px;align-items:flex-start;margin-bottom:4px}
     .item small{color:var(--text-muted)}
-    .floor-card{border:1.5px solid #bfdbfe;border-radius:16px;padding:16px;margin-bottom:18px;background:#f8fbff}
-    .floor-card h4{color:var(--primary-dark);font-size:16px;margin-bottom:4px}
-    .sch{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid #e2e8f0;font-size:13px}
-    .sch.cur{background:#eff6ff;margin:0 -8px;padding:9px 8px;border-radius:8px}
-    .sch:last-child{border-bottom:none}
-    @keyframes fadeIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:none}}
-    @keyframes scaleUp{from{transform:scale(.9);opacity:0}to{transform:scale(1);opacity:1}}
+
+    /* เวรห้องน้ำ */
+    .floor-card{border:1px solid var(--line);border-radius:14px;margin-bottom:18px;overflow:hidden;background:#fff}
+    .floor-head{padding:14px 16px;background:var(--soft);border-bottom:1px solid var(--line)}
+    .floor-head h4{font-size:16px;font-weight:600;color:var(--ink)}
+    .floor-head small{color:var(--text-muted);font-size:13px}
+    .duty-now{display:flex;gap:14px;align-items:center;padding:18px 16px;background:var(--ink);color:#fff}
+    .duty-now .avatar{width:52px;height:52px;border-radius:14px;background:#fff;color:var(--ink);font-size:24px;font-weight:600;display:grid;place-items:center;flex-shrink:0}
+    .duty-now .who{flex:1;min-width:0}
+    .duty-now .who small{display:block;color:#A9BAD3;font-size:13px}
+    .duty-now .who b{display:block;font-size:19px;font-weight:600;line-height:1.35}
+    .done-photo{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--line);background:#fff}
+    .done-photo small{color:var(--text-muted);font-size:13px}
+    .upload{margin:14px 16px;padding:14px;border:1px dashed var(--primary-light);border-radius:12px;background:#F5F8FF}
+    .sub{padding:14px 16px 0;font-size:13px;font-weight:600;color:var(--text-muted)}
+    .timeline{list-style:none;padding:4px 16px 10px}
+    .tl{position:relative;padding:11px 0 11px 24px;border-bottom:1px solid #EEF1F5}
+    .tl:last-child{border-bottom:none}
+    .tl:before{content:"";position:absolute;left:3px;top:50%;width:10px;height:10px;margin-top:-5px;border-radius:50%;border:2px solid #AEB9C8;background:#fff}
+    .tl b{font-weight:500;font-size:15px}
+    .tl small{display:block;color:var(--text-muted);font-size:13px}
+    .me-badge{font-size:11px;font-weight:600;background:#E3ECFF;color:var(--primary);border-radius:999px;padding:1px 8px;margin-left:4px}
+
+    .modal{display:none;position:fixed;inset:0;background:rgba(16,36,62,.55);justify-content:center;align-items:center;padding:20px;z-index:1000}
+    .modal-content{background:#fff;padding:28px;border-radius:14px;text-align:center;max-width:380px;width:100%;animation:pop .2s ease}
+    .success-icon{width:56px;height:56px;background:#DDF3EA;color:var(--ok);border-radius:50%;display:flex;justify-content:center;align-items:center;font-size:28px;margin:0 auto 16px}
+    @keyframes pop{from{transform:scale(.96);opacity:0}to{transform:scale(1);opacity:1}}
+    @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
   </style>
 </head>
 <body>
 <div class="container">
   <div class="header">
-    <h2>ระบบชำระค่าบ้าน</h2>
-    <p>หอพักนักเรียน ม.4 - ม.6</p>
+    <div class="brand-mark">🏠</div>
+    <div>
+      <h2>ระบบชำระค่าบ้าน</h2>
+      <p>หอพักนักเรียน ม.4 - ม.6</p>
+    </div>
   </div>
 
   <!-- หน้าแรก: กรอกชื่ออย่างเดียว (ไม่ใช้รหัส) -->
@@ -93,7 +130,7 @@
     <div class="err" id="loginErr"></div>
 
     <div class="divider"><span>หรือ</span></div>
-    <button type="button" class="btn-outline" onclick="showGuest()">🧾 ไม่ใช่ผู้เช่ารายเดือน · จ่ายเงิน (ไม่ต้องใช้รหัส)</button>
+    <button type="button" class="btn-outline" onclick="showGuest()">🧾 ไม่ใช่ผู้เช่ารายเดือน · จ่ายเงิน</button>
   </div>
 
   <!-- จ่ายเงินสำหรับผู้ที่ไม่ใช่ผู้เช่ารายเดือน (ไม่ใช้รหัส) -->
@@ -158,7 +195,7 @@
 
     <!-- เวรทำความสะอาดห้องน้ำ (ทุกคนเห็น ไม่ใช้รหัส) -->
     <div id="tab-clean">
-      <p class="hint">เวรหมุนเวียนทุก 2 สัปดาห์ ครบทุกคนแล้ววนใหม่ · ทุกคนในหอเห็นตารางและรูปได้</p>
+      <p class="hint" id="cleanHint"></p>
       <div id="cleanBoard"><p class="hint">กำลังโหลด...</p></div>
     </div>
 
@@ -192,17 +229,7 @@
 
     <!-- ค่าบ้าน (ต้องใส่รหัส เห็นเฉพาะตัวเอง) -->
     <div id="tab-pay" class="hidden">
-      <div id="payLock">
-        <p class="hint">🔒 ใส่รหัส 4 หลักของคุณเพื่อดูยอดค้างและชำระค่าบ้าน</p>
-        <div class="form-group">
-          <label for="payPin">รหัส 4 หลัก</label>
-          <input type="password" id="payPin" inputmode="numeric" maxlength="4" placeholder="รหัสที่ได้รับจากพี่ดูแล">
-        </div>
-        <button type="button" class="btn-primary" id="unlockBtn" onclick="unlockPay()">ปลดล็อก</button>
-        <div class="err" id="payErr"></div>
-      </div>
-
-      <div id="payContent" class="hidden">
+      <div id="payContent">
         <div id="noticeList"></div>
         <div id="statusBox" class="status"></div>
 
@@ -251,7 +278,6 @@
           <button type="submit" class="btn-primary" id="submitBtn">บันทึกการชำระเงิน</button>
         </form>
 
-        <button type="button" class="btn-link" onclick="lockPay()">🔒 ล็อกหน้านี้</button>
       </div>
     </div>
   </div>
@@ -273,7 +299,6 @@
   // =======================================================
   const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   let creds = null;   // { name } เข้าด้วยชื่ออย่างเดียว
-  let payPin = null;  // รหัส ใช้เฉพาะหน้า "ค่าบ้าน" เก็บในหน่วยความจำเท่านั้น
   let me = null;      // ข้อมูลค่าบ้านของตัวเอง (หลังใส่รหัส)
   let board = null;   // ข้อมูลห้องน้ำ + แจ้งซ่อม
   let qrUrl = null;
@@ -392,11 +417,11 @@
   function enterMain() {
     $('loginView').classList.add('hidden'); $('guestView').classList.add('hidden'); $('mainView').classList.remove('hidden');
     $('helloName').textContent = board.me.name; $('helloGrade').textContent = board.me.grade || '';
-    lockPay(); renderBoard(); showTab('clean', true);
+    renderBoard(); showTab('clean', true); loadMe();
   }
 
   function logout() {
-    sessionStorage.removeItem('name'); creds = me = board = payPin = null;
+    sessionStorage.removeItem('name'); creds = me = board = null;
     $('mainView').classList.add('hidden'); $('loginView').classList.remove('hidden');
     $('loginName').value = '';
   }
@@ -439,28 +464,13 @@
   }
 
   // ---------- ค่าบ้าน (ต้องใส่รหัส) ----------
-  async function unlockPay() {
-    const pin = $('payPin').value.trim();
-    $('payErr').textContent = '';
-    if (!pin) { $('payErr').textContent = 'กรุณากรอกรหัส'; return; }
-    $('unlockBtn').disabled = true; $('unlockBtn').textContent = 'กำลังตรวจสอบ...';
-    const { data, error } = await sb.rpc('get_student_status', { p_name: creds.name, p_pin: pin });
-    $('unlockBtn').disabled = false; $('unlockBtn').textContent = 'ปลดล็อก';
-    if (error) { $('payErr').textContent = 'เชื่อมต่อระบบไม่ได้: ' + error.message; return; }
-    if (!data) { $('payErr').textContent = 'รหัสไม่ถูกต้อง'; return; }
-    payPin = pin; me = data;
-    $('payLock').classList.add('hidden'); $('payContent').classList.remove('hidden');
-    renderPay(true);
-  }
-
-  function lockPay() {
-    payPin = null; me = null;
-    $('payPin').value = ''; $('payErr').textContent = '';
-    $('payContent').classList.add('hidden'); $('payLock').classList.remove('hidden');
+  async function loadMe() {
+    const { data } = await sb.rpc('get_student_status_by_name', { p_name: creds.name });
+    if (data) { me = data; renderPay(true); }
   }
 
   async function refresh() {
-    const { data } = await sb.rpc('get_student_status', { p_name: creds.name, p_pin: payPin });
+    const { data } = await sb.rpc('get_student_status_by_name', { p_name: creds.name });
     if (data) { me = data; renderPay(false); }
   }
 
@@ -468,14 +478,14 @@
     // แจ้งเตือนจากแอดมิน
     $('noticeList').innerHTML = me.notices.map(n =>
       `<div class="notice"><b>📢 แจ้งเตือนจากผู้ดูแล</b><br>${esc(n.message)}</div>`).join('');
-    if (markRead && me.notices.length) sb.rpc('mark_notices_read', { p_name: creds.name, p_pin: payPin });
+    if (markRead && me.notices.length) sb.rpc('mark_notices_read_by_name', { p_name: creds.name });
 
     // ยอดค้าง
-    const owed = calcOwed(me), box = $('statusBox'), total = owed.reduce((a, b) => a + b.remaining, 0);
+    const owed = calcOwed(me), box = $('statusBox');
     if (owed.length) {
       box.className = 'status bad';
-      box.innerHTML = `<h3>ค้างชำระ ${owed.length} เดือน (รวม ${total.toLocaleString()} บาท)</h3>
-        <div class="chips">${owed.map(o => `<span class="chip">${thMonth(o.month)}${o.remaining < o.due ? ' (เหลือ ' + o.remaining + ')' : ''}</span>`).join('')}</div>`;
+      box.innerHTML = `<h3>ค้างชำระ ${owed.length} เดือน</h3>
+        <div class="chips">${owed.map(o => `<span class="chip">${thMonth(o.month)}</span>`).join('')}</div>`;
     } else {
       box.className = 'status good';
       box.innerHTML = '<h3>✓ ชำระครบทุกเดือนแล้ว</h3><span style="font-size:14px">ขอบคุณครับ/ค่ะ</span>';
@@ -490,8 +500,7 @@
   }
 
   function fillAmount() {
-    const m = $('month').value, o = calcOwed(me).find(x => x.month === m);
-    $('amount').value = o ? o.remaining : me.fee;
+    $('amount').value = me.fee;
   }
 
   async function submitPayment(e) {
@@ -505,8 +514,8 @@
         if (!f) throw new Error('กรุณาแนบสลิป');
         slipPath = await uploadImg('slips', f, 'slips', 1600);
       }
-      const { data, error } = await sb.rpc('submit_payment', {
-        p_name: creds.name, p_pin: payPin, p_month: $('month').value,
+      const { data, error } = await sb.rpc('submit_payment_by_name', {
+        p_name: creds.name, p_month: $('month').value,
         p_amount: parseInt($('amount').value, 10), p_method: method,
         p_receiver: $('receiver').value, p_slip_path: slipPath, p_note: $('note').value.trim()
       });
@@ -548,6 +557,8 @@
         banner = `<div class="notice" style="background:#eff6ff;border-color:#bfdbfe"><b>🚿 ถึงเวรคุณทำความสะอาดห้องน้ำ${FL[meB.floor]}</b><br>รอบวันที่ ${thShort(cur.period_start)} – ${thShort(cur.period_end)} · ถ่ายรูปส่งหลังทำเสร็จ<br><button type="button" class="btn-small" onclick="showTab('clean')">ไปส่งรูป</button></div>`;
     }
     $('dutyBanner').innerHTML = banner;
+    const startTxt = board.started ? '' : ' เวรเริ่มวันที่ ' + new Date(board.anchor + 'T00:00:00+07:00').toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' });
+    $('cleanHint').textContent = `เวรหมุนเวียนทุก 2 สัปดาห์ ถ่ายรูปส่งภายในรอบของตัวเอง หากไม่ส่งปรับรอบละ ${board.fine ?? 20} บาท${startTxt}`;
 
     // รายการแจ้งซ่อม
     const st = { new: ['pending', 'รอรับเรื่อง'], in_progress: ['prog', 'กำลังซ่อม'], done: ['confirmed', 'ซ่อมแล้ว'] };
@@ -565,33 +576,36 @@
   }
 
   function renderFloor(fl) {
-    const f = board.floors[fl], n = f.members.length, today = board.today, meId = board.me.id;
-    if (!n) return `<div class="floor-card"><h4>ห้องน้ำ${FL[fl]}</h4><p class="hint">ยังไม่มีสมาชิกในเวรชั้นนี้</p></div>`;
+    const f = board.floors[fl], n = f.members.length, meId = board.me.id;
+    const head = `<div class="floor-head"><h4>ห้องน้ำ${FL[fl]}</h4><small>สมาชิก ${n} คน หมุนเวียนครบรอบทุก ${n * 2} สัปดาห์</small></div>`;
+    if (!n) return `<div class="floor-card">${head}<p class="hint" style="padding:16px;margin:0">ยังไม่มีสมาชิกในเวรชั้นนี้</p></div>`;
+
+    const initial = nm => (String(nm || '').match(/[ก-ฮA-Za-z]/) || ['?'])[0];
     const cur = f.schedule.find(x => x.is_current);
+    const rest = f.schedule.filter(x => !x.is_current);
     const mine = cur && cur.student_id === meId;
 
-    const rows = f.schedule.map(it => {
-      let tag;
-      if (it.done) tag = '<span class="tag confirmed">✓ ทำแล้ว</span>';
-      else if (it.period_end < today) tag = '<span class="tag rejected">ยังไม่ส่งรูป</span>';
-      else if (it.is_current) tag = '<span class="tag pending">รอบนี้ · รอส่งรูป</span>';
-      else tag = '<span class="tag gray">ถัดไป</span>';
-      return `<div class="sch ${it.is_current ? 'cur' : ''}">
-        <div><b>${esc(it.name || '-')}</b>${it.student_id === meId ? ' <small>(คุณ)</small>' : ''}<br><small>${thShort(it.period_start)} – ${thShort(it.period_end)}${it.done_at ? ' · ส่งเมื่อ ' + thDT(it.done_at) : ''}</small></div>
-        <div style="display:flex;align-items:center;gap:8px">${tag}${thumb(it.photo_path)}</div></div>`;
-    }).join('');
+    let now = '';
+    if (cur) {
+      const st = cur.done ? '<span class="tag confirmed">ส่งรูปแล้ว</span>' : '<span class="tag pending">รอส่งรูป</span>';
+      now = `<div class="duty-now">
+          <div class="avatar">${esc(initial(cur.name))}</div>
+          <div class="who"><small>เวรรอบนี้ ${thShort(cur.period_start)} – ${thShort(cur.period_end)}</small>
+            <b>${esc(cur.name || '-')}${cur.student_id === meId ? ' (คุณ)' : ''}</b></div>${st}</div>`
+        + (cur.photo_path ? `<div class="done-photo">${thumb(cur.photo_path)}<small>ส่งเมื่อ ${thDT(cur.done_at)}</small></div>` : '');
+    }
 
     const upload = mine ? `
-      <div style="margin:12px 0;padding:12px;border:1.5px dashed var(--primary-light);border-radius:12px;background:#fff">
-        <label for="cleanFile">${cur.done ? '✓ ส่งรูปรอบนี้แล้ว (ส่งใหม่เพื่อแทนที่ได้)' : 'ถึงเวรคุณ! ถ่ายรูปห้องน้ำหลังทำความสะอาด'}</label>
+      <div class="upload">
+        <label for="cleanFile">${cur.done ? 'ส่งรูปรอบนี้แล้ว ส่งใหม่เพื่อแทนที่ได้' : 'ถึงเวรคุณแล้ว ถ่ายรูปห้องน้ำหลังทำความสะอาด'}</label>
         <input type="file" id="cleanFile" accept="image/*" capture="environment">
         <button type="button" class="btn-primary" id="cleanBtn" onclick="submitCleaning()">ส่งรูปยืนยัน</button>
       </div>` : '';
 
-    return `<div class="floor-card">
-      <h4>🚿 ห้องน้ำ${FL[fl]}</h4>
-      <p class="hint" style="margin-bottom:8px">สมาชิก ${n} คน · หมุนเวียนครบ ${n} รอบ (${n * 2} สัปดาห์) แล้ววนใหม่</p>
-      ${upload}${rows}</div>`;
+    const rows = rest.map(it => `<li class="tl"><b>${esc(it.name || '-')}</b>${it.student_id === meId ? '<span class="me-badge">คุณ</span>' : ''}
+        <small>${thShort(it.period_start)} – ${thShort(it.period_end)}</small></li>`).join('');
+
+    return `<div class="floor-card">${head}${now}${upload}${rows ? `<div class="sub">${board.started ? 'รอบถัดไป' : 'ลำดับเวร'}</div><ul class="timeline">${rows}</ul>` : ''}</div>`;
   }
 
   async function submitCleaning() {
@@ -642,7 +656,6 @@
     if (data) { creds = { name: saved }; board = data; enterMain(); }
   })();
   $('loginName').addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
-  $('payPin').addEventListener('keydown', e => { if (e.key === 'Enter') unlockPay(); });
 </script>
 </body>
 </html>
