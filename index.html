@@ -8,14 +8,14 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     :root{
-      --ink:#10243E; --primary-dark:#10243E; --primary:#1F4FD8; --primary-light:#8FB0F5;
-      --bg:#EEF1F5; --white:#fff; --line:#DCE2EA; --soft:#F6F8FB;
+      --ink:#0f2b46; --primary-dark:#0f2b46; --primary:#1e40af; --primary-light:#60a5fa;
+      --bg:#e0f2fe; --white:#fff; --line:#DCE2EA; --soft:#F6F8FB;
       --text-main:#17202E; --text-muted:#5F6B7C; --danger:#C0392B; --ok:#0F7B5F;
     }
     *{box-sizing:border-box;margin:0;padding:0;font-family:'IBM Plex Sans Thai','Sarabun',sans-serif}
-    body{background:var(--bg);color:var(--text-main);min-height:100vh;display:flex;justify-content:center;align-items:flex-start;padding:20px 14px 40px;font-size:15px;line-height:1.55}
+    body{background:linear-gradient(135deg,#e0f2fe 0%,#f8fafc 100%);color:var(--text-main);min-height:100vh;display:flex;justify-content:center;align-items:flex-start;padding:20px 14px 40px;font-size:15px;line-height:1.55}
     .container{background:var(--white);width:100%;max-width:520px;border-radius:14px;border:1px solid var(--line);box-shadow:0 1px 2px rgba(16,36,62,.06),0 10px 28px rgba(16,36,62,.07);overflow:hidden}
-    .header{background:var(--ink);color:#fff;padding:22px 24px;display:flex;align-items:center;gap:14px}
+    .header{background:linear-gradient(135deg,#0f2b46,#1e40af);color:#fff;padding:26px 24px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px}
     .brand-mark{width:42px;height:42px;border-radius:11px;background:rgba(255,255,255,.12);display:grid;place-items:center;font-size:21px;flex-shrink:0}
     .header h2{font-size:19px;font-weight:600}
     .header p{font-size:13px;color:#A9BAD3;margin-top:1px}
@@ -24,7 +24,7 @@
     .form-group{margin-bottom:18px}
     label{display:block;font-size:14px;font-weight:500;color:var(--ink);margin-bottom:7px}
     input[type=text],input[type=number],input[type=password],select,textarea{width:100%;padding:11px 14px;border:1px solid #C5CDD9;border-radius:10px;font-size:15px;color:var(--text-main);background:#fff;transition:border-color .15s,box-shadow .15s;outline:none}
-    input:focus,select:focus,textarea:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(31,79,216,.16)}
+    input:focus,select:focus,textarea:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(30,64,175,.18)}
     button:focus-visible,.tabbtn:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
     textarea{resize:vertical}
     input[type=file]{width:100%;padding:10px;border:1px dashed #AEB9C8;border-radius:10px;background:var(--soft);cursor:pointer;font-size:14px}
@@ -40,7 +40,7 @@
     .slip-box{display:none;margin-top:14px}
 
     .btn-primary{width:100%;background:var(--primary);color:#fff;border:none;padding:13px;border-radius:10px;font-size:16px;font-weight:600;cursor:pointer;margin-top:8px;transition:background .15s}
-    .btn-primary:hover{background:#1A43B8}
+    .btn-primary:hover{background:#1e3a8a}
     .btn-primary:disabled{background:#B6C0CE;cursor:not-allowed}
     .btn-outline{width:100%;background:#fff;color:var(--primary);border:1px solid var(--primary);padding:12px;border-radius:10px;font-size:15px;font-weight:500;cursor:pointer;margin-top:10px}
     .btn-outline:hover{background:#F3F6FF}
@@ -74,7 +74,7 @@
 
     .tag{font-size:12px;padding:3px 10px;border-radius:999px;font-weight:600;white-space:nowrap}
     .tag.pending{background:#FFF1CC;color:#7A5200}.tag.confirmed{background:#DDF3EA;color:#0B6B52}.tag.rejected{background:#FBE4E1;color:#A93226}
-    .tag.prog{background:#E3ECFF;color:#1F4FD8}.tag.gray{background:#E8ECF1;color:#4A5668}
+    .tag.prog{background:#E3ECFF;color:#1e40af}.tag.gray{background:#E8ECF1;color:#4A5668}
 
     .thumb{width:60px;height:60px;object-fit:cover;border-radius:9px;border:1px solid var(--line);display:block}
     .item{border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:10px;font-size:14px}
@@ -86,7 +86,7 @@
     .floor-head{padding:14px 16px;background:var(--soft);border-bottom:1px solid var(--line)}
     .floor-head h4{font-size:16px;font-weight:600;color:var(--ink)}
     .floor-head small{color:var(--text-muted);font-size:13px}
-    .duty-now{display:flex;gap:14px;align-items:center;padding:18px 16px;background:var(--ink);color:#fff}
+    .duty-now{display:flex;gap:14px;align-items:center;padding:18px 16px;background:linear-gradient(135deg,#0f2b46,#1e40af);color:#fff}
     .duty-now .avatar{width:52px;height:52px;border-radius:14px;background:#fff;color:var(--ink);font-size:24px;font-weight:600;display:grid;place-items:center;flex-shrink:0}
     .duty-now .who{flex:1;min-width:0}
     .duty-now .who small{display:block;color:#A9BAD3;font-size:13px}
