@@ -155,6 +155,14 @@
     <div class="card hidden" id="tab-clean">
       <h3>ตารางเวรทำความสะอาดห้องน้ำ</h3>
       <div id="cleanAdmin"></div>
+
+      <h3 style="margin-top:28px">ค่าปรับไม่ส่งรูป</h3>
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:10px">ระบบสร้างค่าปรับให้อัตโนมัติเมื่อรอบเวรจบโดยไม่มีรูป (หน้านักเรียนไม่แสดงรายการนี้) กด "จ่ายแล้ว" เมื่อเก็บเงินแล้ว หรือ "ยกเว้น" ถ้าไม่เก็บ</p>
+      <div id="fineSummary" style="margin-bottom:10px"></div>
+      <div class="scroll"><table>
+        <thead><tr><th>รอบ</th><th>ชั้น</th><th>ผู้รับผิดชอบ</th><th>ค่าปรับ</th><th>สถานะ</th><th></th></tr></thead>
+        <tbody id="fineBody"></tbody>
+      </table></div>
     </div>
 
     <!-- จัดการนักเรียน -->
@@ -163,13 +171,12 @@
       <div class="row">
         <input type="text" id="nName" placeholder="ชื่อ - นามสกุล" style="min-width:220px">
         <select id="nGrade"><option>ม.4</option><option>ม.5</option><option>ม.6</option></select>
-        <input type="text" id="nPin" placeholder="รหัส 4 หลัก" maxlength="4" style="width:110px">
         <input type="month" id="nStart">
         <select id="nBath"><option value="">ห้องน้ำ: ไม่ระบุ</option><option value="บน">ห้องน้ำชั้นบน</option><option value="ล่าง">ห้องน้ำชั้นล่าง</option></select>
         <button class="btn" onclick="addStudent()">เพิ่ม</button>
       </div>
       <div class="scroll"><table>
-        <thead><tr><th>ชื่อ</th><th>ชั้น</th><th>รหัส</th><th>เริ่มนับ</th><th>ห้องน้ำ (ชั้น / ลำดับเวร)</th><th>สถานะ</th><th></th></tr></thead>
+        <thead><tr><th>ชื่อ</th><th>ชั้น</th><th>เริ่มนับ</th><th>ห้องน้ำ (ชั้น / ลำดับเวร)</th><th>สถานะ</th><th></th></tr></thead>
         <tbody id="studentBody"></tbody>
       </table></div>
     </div>
@@ -190,10 +197,15 @@
         <button class="btn sm" onclick="saveFee()">บันทึก</button>
       </div>
       <div class="row">
-        <label style="font-size:14px">วันเริ่มรอบทำความสะอาดแรก (ควรเป็นวันจันทร์)</label>
+        <label style="font-size:14px">วันเริ่มรอบเวรแรก (ธันวาคม 2569 = 1 ธ.ค. 2026)</label>
         <input type="date" id="anchorInput">
         <button class="btn sm" onclick="saveAnchor()">บันทึก</button>
         <small style="color:var(--text-muted)">⚠ เปลี่ยนแล้วตารางเวรจะเลื่อนทั้งหมด</small>
+      </div>
+      <div class="row">
+        <label style="font-size:14px">ค่าปรับไม่ส่งรูป (บาทต่อรอบ)</label>
+        <input type="number" id="fineInput" min="0" style="width:110px">
+        <button class="btn sm" onclick="saveFine()">บันทึก</button>
       </div>
     </div>
     </main>
@@ -211,7 +223,6 @@
     <div class="grid2">
       <label>ชื่อ - นามสกุล<input type="text" id="smName"></label>
       <label>ชั้น<select id="smGrade"><option>ม.4</option><option>ม.5</option><option>ม.6</option></select></label>
-      <label>รหัส 4 หลัก<input type="text" id="smPin" maxlength="4"></label>
       <label>เริ่มนับค่าบ้านตั้งแต่เดือน<input type="month" id="smStart"></label>
       <label>ค่าบ้านต่อเดือนของคนนี้ (เว้นว่าง = ใช้ค่ากลาง)<input type="number" id="smFee" min="0"></label>
       <label>สถานะ<select id="smActive"><option value="1">ใช้งาน</option><option value="0">ปิดใช้งาน</option></select></label>
@@ -283,7 +294,7 @@
     const [s, p, st, n, g, c] = await Promise.all([
       sb.from('students').select('*').order('full_name'),
       sb.from('payments').select('*').order('created_at', { ascending: false }),
-      sb.from('settings').select('monthly_fee, cleaning_anchor, qr_path').eq('id', 1).single(),
+      sb.from('settings').select('monthly_fee, cleaning_anchor, qr_path, cleaning_fine').eq('id', 1).single(),
       sb.from('notices').select('student_id, created_at, read_at').order('created_at', { ascending: false }),
       sb.from('guest_payments').select('*').order('created_at', { ascending: false }),
       sb.from('student_charges').select('*')
@@ -291,11 +302,12 @@
     students = s.data || []; payments = p.data || []; notices = n.data || [];
     fee = st.data?.monthly_fee ?? 800; $('feeInput').value = fee;
     $('anchorInput').value = st.data?.cleaning_anchor ?? '';
+    $('fineInput').value = st.data?.cleaning_fine ?? 20;
     qrPath = st.data?.qr_path || null; guests = g.data || []; charges = c.data || [];
     renderQrAdmin(); renderGuests();
     computeRows(); renderAll_();
     if (curStu) renderStuLedger();
-    loadBoard();
+    loadBoard(); loadFines();
   }
 
   function computeRows() {
@@ -362,7 +374,7 @@
 
   function renderStudents() {
     $('studentBody').innerHTML = students.map(s => `<tr>
-      <td>${esc(s.full_name)}</td><td>${esc(s.grade)}</td><td>${esc(s.pin)}</td><td>${thMonth(s.start_month.slice(0, 7))}</td>
+      <td>${esc(s.full_name)}</td><td>${esc(s.grade)}</td><td>${thMonth(s.start_month.slice(0, 7))}</td>
       <td style="white-space:nowrap">
         <select onchange="setBath('${s.id}', this.value)">
           <option value="">-</option>
@@ -413,11 +425,11 @@
   }
 
   async function addStudent() {
-    const full_name = $('nName').value.trim(), pin = $('nPin').value.trim(), start = $('nStart').value;
-    if (!full_name || !/^\d{4}$/.test(pin) || !start) return alert('กรอกชื่อ, รหัส 4 หลัก (ตัวเลข) และเดือนเริ่มนับ');
-    const { error } = await sb.from('students').insert({ full_name, grade: $('nGrade').value, pin, start_month: start + '-01', bathroom: $('nBath').value || null });
+    const full_name = $('nName').value.trim(), start = $('nStart').value;
+    if (!full_name || !start) return alert('กรอกชื่อและเดือนเริ่มนับ');
+    const { error } = await sb.from('students').insert({ full_name, grade: $('nGrade').value, pin: '0000', start_month: start + '-01', bathroom: $('nBath').value || null });
     if (error) return alert(error.message.includes('duplicate') ? 'มีชื่อนี้อยู่แล้ว' : error.message);
-    $('nName').value = ''; $('nPin').value = '';
+    $('nName').value = '';
     await loadAll();
   }
   async function toggleActive(id, active) {
@@ -475,7 +487,8 @@
   }
 
   function renderClean() {
-    $('cleanAdmin').innerHTML = ['บน', 'ล่าง'].map(fl => {
+    const note = dorm.started ? '' : `<p style="font-size:13px;color:#a16207;margin-bottom:10px">เวรจะเริ่มวันที่ ${thShort(dorm.anchor)}</p>`;
+    $('cleanAdmin').innerHTML = note + ['บน', 'ล่าง'].map(fl => {
       const f = dorm.floors[fl], n = f.members.length;
       if (!n) return `<div class="floor"><h4>ห้องน้ำ${FL[fl]}</h4><p class="empty">ยังไม่มีสมาชิก (กำหนดที่แท็บ "จัดการนักเรียน")</p></div>`;
       const rows = f.schedule.map(it => {
@@ -606,7 +619,7 @@
   function openStudent(id) {
     const s = students.find(x => x.id === id); if (!s) return;
     curStu = id;
-    $('smName').value = s.full_name; $('smGrade').value = s.grade; $('smPin').value = s.pin;
+    $('smName').value = s.full_name; $('smGrade').value = s.grade;
     $('smStart').value = s.start_month.slice(0, 7); $('smFee').value = s.monthly_fee ?? '';
     $('smActive').value = s.active ? '1' : '0'; $('smBath').value = s.bathroom || '';
     $('smOrder').value = s.bathroom_order ?? '';
@@ -640,11 +653,11 @@
 
   async function saveStudent() {
     const s = students.find(x => x.id === curStu); if (!s) return;
-    const full_name = $('smName').value.trim(), pin = $('smPin').value.trim(), start = $('smStart').value;
-    if (!full_name || !/^\d{4}$/.test(pin) || !start) return alert('กรอกชื่อ, รหัส 4 หลัก (ตัวเลข) และเดือนเริ่มนับ');
+    const full_name = $('smName').value.trim(), start = $('smStart').value;
+    if (!full_name || !start) return alert('กรอกชื่อและเดือนเริ่มนับ');
     const feeV = $('smFee').value.trim(), ordV = $('smOrder').value.trim();
     const { error } = await sb.from('students').update({
-      full_name, grade: $('smGrade').value, pin, start_month: start + '-01',
+      full_name, grade: $('smGrade').value, start_month: start + '-01',
       monthly_fee: feeV === '' ? null : parseInt(feeV, 10),
       active: $('smActive').value === '1', bathroom: $('smBath').value || null,
       bathroom_order: ordV === '' ? null : parseInt(ordV, 10)
@@ -672,6 +685,49 @@
     const { error } = await sb.from('student_charges').delete().eq('student_id', curStu).eq('month_key', month);
     if (error) return alert(error.message);
     await loadAll();
+  }
+
+  // ================= ค่าปรับไม่ส่งรูป =================
+  let fines = [];
+  function addDays(d, n) {
+    const x = new Date(d + 'T00:00:00+07:00'); x.setDate(x.getDate() + n);
+    return x.toLocaleDateString('sv-SE', { timeZone: 'Asia/Bangkok' });
+  }
+  async function loadFines() {
+    await sb.rpc('sync_cleaning_fines');
+    const { data } = await sb.from('cleaning_fines').select('*').order('period_start', { ascending: false });
+    fines = data || []; renderFines();
+  }
+  function renderFines() {
+    const lab = { unpaid: ['bad', 'ค้างปรับ'], paid: ['ok', 'จ่ายแล้ว'], waived: ['gray', 'ยกเว้น'] };
+    const by = {};
+    fines.filter(f => f.status === 'unpaid').forEach(f => {
+      if (!by[f.student_id]) by[f.student_id] = { n: 0, sum: 0 };
+      by[f.student_id].n++; by[f.student_id].sum += f.amount;
+    });
+    const chips = Object.keys(by).map(id => `<span class="chip">${esc(nameOf(id))} · ${by[id].n} รอบ · ${by[id].sum.toLocaleString()} บาท</span>`).join('');
+    $('fineSummary').innerHTML = chips
+      ? `<p style="font-size:13px;color:var(--text-muted);margin-bottom:6px">ยอดค้างปรับ</p>${chips}`
+      : '<p style="font-size:13px;color:var(--text-muted)">ไม่มีค่าปรับค้าง</p>';
+    $('fineBody').innerHTML = fines.length ? fines.map(f => `<tr>
+      <td>${thShort(f.period_start)} – ${thShort(addDays(f.period_start, 13))}</td><td>${FL[f.floor] || ''}</td>
+      <td><b>${esc(nameOf(f.student_id))}</b></td><td>${f.amount.toLocaleString()}</td>
+      <td><span class="tag ${lab[f.status][0]}">${lab[f.status][1]}</span></td>
+      <td style="white-space:nowrap">${f.status === 'unpaid'
+        ? `<button class="btn sm green" onclick="setFine('${f.id}','paid')">จ่ายแล้ว</button> <button class="btn sm gray" onclick="setFine('${f.id}','waived')">ยกเว้น</button>`
+        : `<button class="btn sm gray" onclick="setFine('${f.id}','unpaid')">ย้อนกลับ</button>`}</td></tr>`).join('')
+      : '<tr><td colspan="6" class="empty">ยังไม่มีค่าปรับ</td></tr>';
+  }
+  async function setFine(id, status) {
+    const { error } = await sb.from('cleaning_fines').update({ status }).eq('id', id);
+    if (error) return alert(error.message);
+    await loadFines();
+  }
+  async function saveFine() {
+    const v = parseInt($('fineInput').value, 10); if (isNaN(v) || v < 0) return;
+    const { error } = await sb.from('settings').update({ cleaning_fine: v }).eq('id', 1);
+    if (error) return alert(error.message);
+    alert('บันทึกแล้ว (มีผลกับค่าปรับที่สร้างใหม่)'); await loadAll();
   }
 
   function exportCsv() {
